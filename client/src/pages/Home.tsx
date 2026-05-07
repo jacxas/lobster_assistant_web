@@ -310,6 +310,201 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Community Setups Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-white to-orange-50">
+        <div className="container max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold text-center mb-4 text-gray-900">
+            Community Setups
+          </h2>
+          <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
+            Discover how other users have customized their Lobster Assistant. Get inspired and find the perfect setup for your needs.
+          </p>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Setup 1: Developer's Dream */}
+            <Card className="p-6 border-2 border-orange-200 hover:shadow-xl transition-all hover:border-orange-400 hover:scale-105">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Developer's Dream</h3>
+                  <p className="text-sm text-gray-500">by @CodeCrusader</p>
+                </div>
+                <span className="text-2xl">👨‍💻</span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Model</p>
+                  <p className="text-gray-700">Llama3 (8B)</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Setup</p>
+                  <p className="text-gray-700">Discord + GitHub Integration</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Use Case</p>
+                  <p className="text-gray-700">Code reviews, debugging, and documentation generation</p>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm text-orange-600 font-semibold">💡 "Saves me hours on code reviews!"</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Setup 2: Productivity Master */}
+            <Card className="p-6 border-2 border-blue-200 hover:shadow-xl transition-all hover:border-blue-400 hover:scale-105">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Productivity Master</h3>
+                  <p className="text-sm text-gray-500">by @TimeKeeper</p>
+                </div>
+                <span className="text-2xl">⚡</span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Model</p>
+                  <p className="text-gray-700">TinyLlama (optimized)</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Setup</p>
+                  <p className="text-gray-700">Telegram + Slack + Calendar API</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Use Case</p>
+                  <p className="text-gray-700">Task management, meeting summaries, and scheduling</p>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm text-blue-600 font-semibold">💡 "My personal assistant that never sleeps!"</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Setup 3: Content Creator */}
+            <Card className="p-6 border-2 border-purple-200 hover:shadow-xl transition-all hover:border-purple-400 hover:scale-105">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Content Creator</h3>
+                  <p className="text-sm text-gray-500">by @CreativeFlow</p>
+                </div>
+                <span className="text-2xl">✍️</span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Model</p>
+                  <p className="text-gray-700">Mistral (7B)</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Setup</p>
+                  <p className="text-gray-700">WhatsApp + Discord + Voice</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Use Case</p>
+                  <p className="text-gray-700">Brainstorming, writing assistance, and content ideation</p>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm text-purple-600 font-semibold">💡 "My creative muse in my pocket!"</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Setup 4: Researcher */}
+            <Card className="p-6 border-2 border-green-200 hover:shadow-xl transition-all hover:border-green-400 hover:scale-105">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Research Assistant</h3>
+                  <p className="text-sm text-gray-500">by @DataDiver</p>
+                </div>
+                <span className="text-2xl">🔬</span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Model</p>
+                  <p className="text-gray-700">Llama3 + RAG (local documents)</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Setup</p>
+                  <p className="text-gray-700">Telegram + Local Knowledge Base</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Use Case</p>
+                  <p className="text-gray-700">Research synthesis, paper analysis, and knowledge extraction</p>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm text-green-600 font-semibold">💡 "My research partner that knows my papers!"</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Setup 5: Language Learner */}
+            <Card className="p-6 border-2 border-red-200 hover:shadow-xl transition-all hover:border-red-400 hover:scale-105">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Language Tutor</h3>
+                  <p className="text-sm text-gray-500">by @PolyglotPro</p>
+                </div>
+                <span className="text-2xl">🌍</span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Model</p>
+                  <p className="text-gray-700">Llama3 (multilingual)</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Setup</p>
+                  <p className="text-gray-700">Discord + Voice + Translation</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Use Case</p>
+                  <p className="text-gray-700">Language practice, translation, and cultural insights</p>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm text-red-600 font-semibold">💡 "Learning languages has never been this fun!"</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Setup 6: Home Automation */}
+            <Card className="p-6 border-2 border-yellow-200 hover:shadow-xl transition-all hover:border-yellow-400 hover:scale-105">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Smart Home Hub</h3>
+                  <p className="text-sm text-gray-500">by @TechNinja</p>
+                </div>
+                <span className="text-2xl">🏠</span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Model</p>
+                  <p className="text-gray-700">TinyLlama (low latency)</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Setup</p>
+                  <p className="text-gray-700">Telegram + Home Assistant Integration</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Use Case</p>
+                  <p className="text-gray-700">Voice control, automation routines, and device management</p>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-sm text-yellow-600 font-semibold">💡 "My home listens only to me!"</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Share Your Setup CTA */}
+          <div className="mt-16 text-center">
+            <Card className="p-8 bg-gradient-to-r from-orange-100 to-red-100 border-2 border-orange-300">
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Share Your Setup! 🦞</h3>
+              <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
+                Have you created an amazing custom setup? We'd love to feature it in our community gallery!
+              </p>
+              <Button className="bg-orange-600 hover:bg-orange-700">
+                Submit Your Setup
+              </Button>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <section className="py-20 px-4 bg-white">
         <div className="container max-w-4xl mx-auto">
