@@ -17,7 +17,9 @@ const COMMUNITY_SETUPS = [
     testimonial: "Saves me hours on code reviews!",
     color: "orange",
     trending: true,
-    popularity: 1250
+    popularity: 1250,
+    rating: 4.8,
+    ratingCount: 342
   },
   {
     id: 2,
@@ -31,7 +33,9 @@ const COMMUNITY_SETUPS = [
     testimonial: "My personal assistant that never sleeps!",
     color: "blue",
     trending: true,
-    popularity: 980
+    popularity: 980,
+    rating: 4.6,
+    ratingCount: 298
   },
   {
     id: 3,
@@ -45,7 +49,9 @@ const COMMUNITY_SETUPS = [
     testimonial: "My creative muse in my pocket!",
     color: "purple",
     trending: false,
-    popularity: 645
+    popularity: 645,
+    rating: 4.5,
+    ratingCount: 187
   },
   {
     id: 4,
@@ -59,7 +65,9 @@ const COMMUNITY_SETUPS = [
     testimonial: "My research partner that knows my papers!",
     color: "green",
     trending: false,
-    popularity: 512
+    popularity: 512,
+    rating: 4.7,
+    ratingCount: 156
   },
   {
     id: 5,
@@ -73,7 +81,9 @@ const COMMUNITY_SETUPS = [
     testimonial: "Learning languages has never been this fun!",
     color: "red",
     trending: true,
-    popularity: 1100
+    popularity: 1100,
+    rating: 4.9,
+    ratingCount: 421
   },
   {
     id: 6,
@@ -87,7 +97,9 @@ const COMMUNITY_SETUPS = [
     testimonial: "My home listens only to me!",
     color: "yellow",
     trending: false,
-    popularity: 428
+    popularity: 428,
+    rating: 4.3,
+    ratingCount: 94
   }
 ];
 
@@ -104,11 +116,47 @@ const COLOR_MAP = {
   yellow: { border: "border-yellow-200", hover: "hover:border-yellow-400", text: "text-yellow-600" }
 };
 
+function StarRating({ rating, ratingCount, setupId, onRate, userRating }: { rating: number; ratingCount: number; setupId: number; onRate: (setupId: number, newRating: number) => void; userRating?: number }) {
+  const [hoverRating, setHoverRating] = useState(0);
+
+  const handleRate = (newRating: number) => {
+    onRate(setupId, newRating);
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map(star => (
+          <button
+            key={star}
+            onClick={() => handleRate(star)}
+            onMouseEnter={() => setHoverRating(star)}
+            onMouseLeave={() => setHoverRating(0)}
+            className="transition-transform hover:scale-110 cursor-pointer"
+          >
+            <span className={`text-xl ${
+              star <= (hoverRating || userRating || rating)
+                ? 'text-yellow-400'
+                : 'text-gray-300'
+            }`}>
+              ★
+            </span>
+          </button>
+        ))}
+      </div>
+      <span className="text-sm text-gray-600 font-medium">
+        {userRating ? `You rated: ${userRating}` : `${rating.toFixed(1)} (${ratingCount})`}
+      </span>
+    </div>
+  );
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedUseCases, setSelectedUseCases] = useState<string[]>([]);
+  const [setupRatings, setSetupRatings] = useState<Record<number, number>>({});
 
   const filteredSetups = useMemo(() => {
     return COMMUNITY_SETUPS.filter(setup => {
@@ -142,6 +190,13 @@ export default function Home() {
     setSelectedModels([]);
     setSelectedPlatforms([]);
     setSelectedUseCases([]);
+  };
+
+  const handleRateSetup = (setupId: number, newRating: number) => {
+    setSetupRatings(prev => ({
+      ...prev,
+      [setupId]: newRating
+    }));
   };
 
   return (
@@ -601,6 +656,16 @@ export default function Home() {
                       </div>
                       <div className="pt-4 border-t border-gray-200">
                         <p className={`text-sm ${colors.text} font-semibold`}>💡 "{setup.testimonial}"</p>
+                      </div>
+                      <div className="pt-4 border-t border-gray-200">
+                        <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Community Rating</p>
+                        <StarRating
+                          rating={setup.rating}
+                          ratingCount={setup.ratingCount}
+                          setupId={setup.id}
+                          onRate={handleRateSetup}
+                          userRating={setupRatings[setup.id]}
+                        />
                       </div>
                     </div>
                   </Card>
