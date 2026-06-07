@@ -5,6 +5,9 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite --host",
+    "dev:server": "tsx watch server/index.ts",
+    "dev:all": "concurrently -n client,server -c cyan,magenta \"pnpm dev\" \"pnpm dev:server\"",
+    "dev:bots": "node src/bot/index.js",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "preview": "vite preview --host",
@@ -80,6 +83,7 @@
     "@vitejs/plugin-react": "^5.0.4",
     "add": "^2.0.6",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
     "esbuild": "^0.25.0",
     "pnpm": "^10.15.1",
     "postcss": "^8.4.47",
