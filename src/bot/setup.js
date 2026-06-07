@@ -1,48 +1,49 @@
-const readline = require('readline');
-const fs = require('fs');
-const path = require('path');
+#!/usr/bin/env node
+import { createInterface } from 'readline';
+import { writeFileSync } from 'fs';
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+const ask = (q) => new Promise(res => rl.question(q, res));
 
-function question(prompt) {
-  return new Promise(resolve => rl.question(prompt, resolve));
+console.log('🦞 Lobster Assistant Setup Wizard');
+console.log('================================\n');
+
+const config = {
+  model: 'tinyllama',
+  ollamaUrl: 'http://localhost:11434',
+  personality: 'medium',
+  contextWindow: 10,
+  maxResponseLength: 500,
+  platforms: {
+    telegram: { enabled: false },
+    discord: { enabled: false },
+    whatsapp: { enabled: false },
+    slack: { enabled: false }
+  }
+};
+
+const model = await ask('Which model? (tinyllama/llama3/mistral) [tinyllama]: ');
+config.model = model.trim() || 'tinyllama';
+
+const tg = await ask('Enable Telegram? (y/n) [n]: ');
+if (tg.toLowerCase() === 'y') {
+  const token = await ask('Telegram Bot Token: ');
+  config.platforms.telegram = { enabled: true, token: token.trim() };
 }
 
-async function setup() {
-  console.log('🦞 Lobster Assistant Setup');
-  console.log('==========================\n');
-
-  const config = {};
-
-  config.API_URL = await question('API URL [http://localhost:3000]: ') || 'http://localhost:3000';
-
-  const useDiscord = await question('Enable Discord bot? (y/n): ');
-  if (useDiscord.toLowerCase() === 'y') {
-    config.DISCORD_TOKEN = await question('Discord Bot Token: ');
-  }
-
-  const useTelegram = await question('Enable Telegram bot? (y/n): ');
-  if (useTelegram.toLowerCase() === 'y') {
-    config.TELEGRAM_TOKEN = await question('Telegram Bot Token: ');
-  }
-
-  const useWhatsApp = await question('Enable WhatsApp bot? (y/n): ');
-  if (useWhatsApp.toLowerCase() === 'y') {
-    config.WHATSAPP_ENABLED = 'true';
-  }
-
-  const envContent = Object.entries(config)
-    .map(([k, v]) => `${k}=${v}`)
-    .join('\n');
-
-  const envPath = path.join(process.cwd(), '.env');
-  fs.writeFileSync(envPath, envContent);
-
-  console.log('\n✅ Configuration saved to .env');
-  rl.close();
+const dc = await ask('Enable Discord? (y/n) [n]: ');
+if (dc.toLowerCase() === 'y') {
+  const token = await ask('Discord Bot Token: ');
+  config.platforms.discord = { enabled: true, token: token.trim() };
 }
 
-setup().catch(console.error);
+const wa = await ask('Enable WhatsApp? (y/n) [n]: ');
+if (wa.toLowerCase() === 'y') {
+  config.platforms.whatsapp = { enabled: true };
+  console.log('  ℹ️  A QR code will appear when you start the bot. Scan with WhatsApp → Linked Devices.');
+}
+
+writeFileSync('./config.json', JSON.stringify(config, null, 2));
+console.log('\n✅ config.json saved!');
+console.log('🦞 Run: node src/bot/index.js');
+rl.close();

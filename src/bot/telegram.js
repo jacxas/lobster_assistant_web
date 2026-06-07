@@ -1,26 +1,30 @@
-const TelegramBot = require('node-telegram-bot-api');
-const { processMessage } = require('./lobster');
+import TelegramBot from 'node-telegram-bot-api';
+import { askLobster } from './lobster.js';
 
-function initTelegram(token) {
-  const bot = new TelegramBot(token, { polling: true });
+const userHistories = new Map();
+
+export function createTelegramBot(config) {
+  const bot = new TelegramBot(config.platforms.telegram.token, { polling: true });
 
   bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
-    const content = msg.text;
-    if (!content) return;
+    const text = msg.text;
+    if (!text || text.startsWith('/')) return;
+
+    const history = userHistories.get(chatId) || [];
 
     try {
-      bot.sendChatAction(chatId, 'typing');
-      const response = await processMessage(content, String(chatId), 'telegram');
-      await bot.sendMessage(chatId, response);
-    } catch (error) {
-      console.error('Telegram error:', error);
-      await bot.sendMessage(chatId, '❌ Error processing your message.');
+      const reply = await askLobster(text, history, config);
+      history.push({ role: 'user', content: text });
+      history.push({ role: 'assistant', content: reply });
+      if (history.length > (config.contextWindow || 10) * 2) history.splice(0, 2);
+      userHistories.set(chatId, history);
+      await bot.sendMessage(chatId, reply);
+    } catch (err) {
+      await bot.sendMessage(chatId, '🦞 The lobster is temporarily indisposed.');
+      console.error('Telegram error:', err.message);
     }
   });
 
-  console.log('✅ Telegram bot ready');
   return bot;
 }
-
-module.exports = { initTelegram };
