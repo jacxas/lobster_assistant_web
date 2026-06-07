@@ -4,6 +4,7 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import { generalLimiter } from "./middleware/rateLimit.js";
 import { chatRouter } from "./routes/chat.js";
 import { oauthRouter } from "./routes/oauth.js";
 import { statusRouter } from "./routes/status.js";
@@ -23,7 +24,10 @@ async function startServer() {
   app.use(express.json());
   app.use(cookieParser());
 
-  // API routes
+  // Global rate limit on all /api routes
+  app.use("/api", generalLimiter);
+
+  // API routes (chat has its own stricter limiter)
   app.use("/api/oauth", oauthRouter);
   app.use("/api/chat", chatRouter);
   app.use("/api/status", statusRouter);

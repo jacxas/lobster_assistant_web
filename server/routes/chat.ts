@@ -1,10 +1,12 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { sessionMiddleware } from "../middleware/session.js";
+import { chatLimiter } from "../middleware/rateLimit.js";
 import { streamChat, chat, ChatMessage } from "../services/ollama.js";
 
 export const chatRouter = Router();
 chatRouter.use(sessionMiddleware);
+chatRouter.use(chatLimiter);
 
 const ChatBodySchema = z.object({
   message: z.string().min(1).max(8000),
@@ -14,7 +16,6 @@ const ChatBodySchema = z.object({
   })).optional().default([]),
   model: z.string().optional(),
   stream: z.boolean().optional().default(true),
-  // Used by bots
   userId: z.string().optional(),
   platform: z.enum(["discord", "telegram", "whatsapp", "web"]).optional().default("web"),
 });
@@ -40,7 +41,7 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     { role: "user", content: message },
   ];
 
-  // --- Non-streaming mode (used by bots) ---
+  // Non-streaming mode (used by bots)
   if (!stream || platform !== "web") {
     try {
       const reply = await chat(messages, model);
@@ -52,7 +53,7 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     return;
   }
 
-  // --- Streaming mode (SSE) for web client ---
+  // Streaming mode (SSE) for web client
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
