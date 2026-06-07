@@ -1,0 +1,7 @@
+server/
+bot/
+docker-compose.yml
+Dockerfile
+.dockerignore
+docs/
+scripts/
