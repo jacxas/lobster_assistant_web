@@ -1,0 +1,81 @@
+services:
+
+  # 🦞 Lobster app (Node.js server + built frontend)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: lobster-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:3000}
+      SYSTEM_PROMPT: ${SYSTEM_PROMPT:-You are Lobster, a helpful AI assistant. Be concise and friendly.}
+      # OAuth (optional)
+      OAUTH_PORTAL_URL: ${OAUTH_PORTAL_URL:-}
+      APP_ID: ${APP_ID:-}
+      APP_SECRET: ${APP_SECRET:-}
+      # Bots (optional)
+      DISCORD_TOKEN: ${DISCORD_TOKEN:-}
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
+      WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - lobster-net
+
+  # 🤖 Ollama (local AI engine)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: lobster-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: 24h
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - lobster-net
+
+  # 📥 Model puller — downloads the model on first run
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: lobster-ollama-pull
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "🦞 Waiting for Ollama..."
+        until curl -sf http://ollama:11434/api/tags; do sleep 3; done
+        echo "📥 Pulling model: ${OLLAMA_MODEL:-llama3}"
+        ollama pull ${OLLAMA_MODEL:-llama3}
+        echo "✅ Model ready!"
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - lobster-net
+    restart: "no"
+
+volumes:
+  ollama-data:
+    driver: local
+
+networks:
+  lobster-net:
+    driver: bridge
