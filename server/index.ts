@@ -4,6 +4,7 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import { runMigrations } from "./db/schema.js";
 import { generalLimiter } from "./middleware/rateLimit.js";
 import { chatRouter } from "./routes/chat.js";
 import { oauthRouter } from "./routes/oauth.js";
@@ -13,10 +14,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
+  // Run DB migrations before accepting requests
+  runMigrations();
+
   const app = express();
   const server = createServer(app);
 
-  // Middleware
   app.use(cors({
     origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
     credentials: true,
@@ -24,23 +27,17 @@ async function startServer() {
   app.use(express.json());
   app.use(cookieParser());
 
-  // Global rate limit on all /api routes
   app.use("/api", generalLimiter);
-
-  // API routes (chat has its own stricter limiter)
   app.use("/api/oauth", oauthRouter);
   app.use("/api/chat", chatRouter);
   app.use("/api/status", statusRouter);
 
-  // Serve static files from dist/public in production
   const staticPath =
     process.env.NODE_ENV === "production"
       ? path.resolve(__dirname, "public")
       : path.resolve(__dirname, "..", "dist", "public");
 
   app.use(express.static(staticPath));
-
-  // Handle client-side routing
   app.get("*", (_req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
   });
