@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
-import { sessionMiddleware, setSession, destroySession } from "../middleware/session.js";
+import { sessionMiddleware } from "../middleware/session.js";
+import { upsertSession, deleteSession } from "../db/sessions.js";
+
+const COOKIE_NAME = "app_session_id";
 
 export const oauthRouter = Router();
 oauthRouter.use(sessionMiddleware);
@@ -20,9 +22,7 @@ oauthRouter.get("/callback", async (req: Request, res: Response) => {
     const appSecret = process.env.APP_SECRET;
 
     if (!oauthPortalUrl || !appId || !appSecret) {
-      // OAuth not configured — create anonymous session and redirect
-      const sessionId = (req as any).sessionId;
-      setSession(sessionId, { userId: `anon_${sessionId}`, platform: "web" });
+      // OAuth not configured — anonymous session already exists via middleware
       res.redirect("/");
       return;
     }
@@ -35,12 +35,11 @@ oauthRouter.get("/callback", async (req: Request, res: Response) => {
     });
 
     if (!tokenRes.ok) throw new Error("Token exchange failed");
-    const { userId, email, name } = await tokenRes.json() as { userId: string; email?: string; name?: string };
+    const { userId } = await tokenRes.json() as { userId: string; email?: string; name?: string };
 
-    const sessionId = (req as any).sessionId;
-    setSession(sessionId, { userId, platform: "web" });
+    // Attach userId to the existing session
+    upsertSession(req.sessionId, { user_id: userId, platform: "web" });
 
-    // Decode redirect destination from state
     let redirectTo = "/";
     try { redirectTo = atob(String(state)); } catch { /* use default */ }
 
@@ -51,20 +50,20 @@ oauthRouter.get("/callback", async (req: Request, res: Response) => {
   }
 });
 
-/** GET /api/oauth/me — returns current session user */
+/** GET /api/oauth/me — returns current session */
 oauthRouter.get("/me", (req: Request, res: Response) => {
-  const session = (req as any).session;
-  if (!session?.userId) {
+  const { getSession } = require("../db/sessions.js");
+  const session = getSession(req.sessionId);
+  if (!session?.user_id) {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  res.json({ userId: session.userId, platform: session.platform });
+  res.json({ userId: session.user_id, platform: session.platform });
 });
 
 /** POST /api/oauth/logout — destroys session */
 oauthRouter.post("/logout", (req: Request, res: Response) => {
-  const sessionId = (req as any).sessionId;
-  destroySession(sessionId);
+  deleteSession(req.sessionId);
   res.clearCookie(COOKIE_NAME);
   res.json({ ok: true });
 });

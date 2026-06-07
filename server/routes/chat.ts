@@ -3,7 +3,7 @@ import { z } from "zod";
 import { sessionMiddleware } from "../middleware/session.js";
 import { chatLimiter } from "../middleware/rateLimit.js";
 import { streamChat, chat, ChatMessage } from "../services/ollama.js";
-import { saveMessage, getHistory } from "../db/messages.js";
+import { saveMessage, getHistory, clearHistory } from "../db/messages.js";
 
 export const chatRouter = Router();
 chatRouter.use(sessionMiddleware);
@@ -14,7 +14,6 @@ const ChatBodySchema = z.object({
   model: z.string().optional(),
   stream: z.boolean().optional().default(true),
   platform: z.enum(["discord", "telegram", "whatsapp", "web"]).optional().default("web"),
-  // history is now optional — server will load it from DB for web sessions
   history: z.array(z.object({
     role: z.enum(["user", "assistant", "system"]),
     content: z.string(),
@@ -35,7 +34,6 @@ chatRouter.post("/", async (req: Request, res: Response) => {
   const { message, model, stream, platform, history: clientHistory } = parsed.data;
   const sessionId = req.sessionId;
 
-  // Load history from DB for web; bots may pass their own history
   const dbHistory = platform === "web" ? getHistory(sessionId, 20) : [];
   const history = clientHistory ?? dbHistory;
 
@@ -45,7 +43,6 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     { role: "user", content: message },
   ];
 
-  // Non-streaming for bots
   if (!stream || platform !== "web") {
     try {
       const reply = await chat(messages, model);
@@ -61,7 +58,6 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     return;
   }
 
-  // Streaming SSE for web
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -93,8 +89,7 @@ chatRouter.post("/", async (req: Request, res: Response) => {
 });
 
 /** DELETE /api/chat/history — clear conversation for current session */
-chatRouter.delete("/history", sessionMiddleware, (req: Request, res: Response) => {
-  const { clearHistory } = require("../db/messages.js");
+chatRouter.delete("/history", (req: Request, res: Response) => {
   clearHistory(req.sessionId);
   res.json({ ok: true });
 });
