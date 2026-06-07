@@ -1,10 +1,10 @@
-const { Client, GatewayIntentBits, Events } = require('discord.js');
-const { processMessage } = require('./lobster');
+import { Client, GatewayIntentBits } from 'discord.js';
+import { askLobster } from './lobster.js';
 
-let client;
+const userHistories = new Map();
 
-function initDiscord(token) {
-  client = new Client({
+export function createDiscordBot(config) {
+  const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
@@ -13,29 +13,30 @@ function initDiscord(token) {
     ]
   });
 
-  client.once(Events.ClientReady, (c) => {
-    console.log(`✅ Discord bot ready as ${c.user.tag}`);
-  });
-
-  client.on(Events.MessageCreate, async (message) => {
+  client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     if (!message.mentions.has(client.user) && message.channel.type !== 1) return;
 
-    const content = message.content.replace(/<@!?\d+>/g, '').trim();
-    if (!content) return;
+    const text = message.content.replace(/<@!?\d+>/g, '').trim();
+    if (!text) return;
+
+    const userId = message.author.id;
+    const history = userHistories.get(userId) || [];
 
     try {
       await message.channel.sendTyping();
-      const response = await processMessage(content, message.author.id, 'discord');
-      await message.reply(response);
-    } catch (error) {
-      console.error('Discord error:', error);
-      await message.reply('❌ Error processing your message.');
+      const reply = await askLobster(text, history, config);
+      history.push({ role: 'user', content: text });
+      history.push({ role: 'assistant', content: reply });
+      if (history.length > (config.contextWindow || 10) * 2) history.splice(0, 2);
+      userHistories.set(userId, history);
+      await message.reply(reply);
+    } catch (err) {
+      await message.reply('🦞 The lobster encountered a deep-sea error.');
+      console.error('Discord error:', err.message);
     }
   });
 
-  client.login(token);
+  client.login(config.platforms.discord.token);
   return client;
 }
-
-module.exports = { initDiscord };
