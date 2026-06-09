@@ -1,34 +1,55 @@
-# 🦞 Lobster Bot — Conectores de Mensajería
+# 🦞 Lobster Bot — Multi-plataforma
 
-Este directorio contiene los conectores del bot para cada plataforma de mensajería.
+Bot de IA local que conecta Ollama con Telegram, Discord, WhatsApp y Slack.
 
-## Archivos
-
-| Archivo | Descripción |
-|---|---|
-| `index.js` | Entry point principal — carga conectores según `.env` |
-| `lobster.js` | Core del asistente — conecta con Ollama local |
-| `discord.js` | Conector para Discord |
-| `telegram.js` | Conector para Telegram |
-| `whatsapp.js` | Conector para WhatsApp (via Baileys) |
-| `setup.js` | Wizard interactivo de configuración |
-
-## Uso
+## Instalación
 
 ```bash
 cd bot
 npm install
-node setup.js   # Configurar tokens
-node index.js   # Iniciar el bot
+# o si usás pnpm:
+pnpm install
 ```
 
-## Variables de entorno requeridas
+## Configuración
+
+Ejecutá el wizard:
+
+```bash
+node setup.js
+```
+
+O creá un archivo `.env` en esta carpeta con:
 
 ```env
+# Al menos uno de estos tokens es necesario
+TELEGRAM_TOKEN=tu_token_aqui
+DISCORD_TOKEN=tu_token_aqui
+WHATSAPP_ENABLED=true
+SLACK_TOKEN=tu_token_aqui
+SLACK_APP_TOKEN=tu_app_token_aqui  # Solo para Slack (Socket Mode)
+
+# Configuración de Ollama (opcional, estos son los valores por defecto)
 OLLAMA_URL=http://127.0.0.1:11434/api/generate
 MODEL=tinyllama
-TELEGRAM_TOKEN=
-DISCORD_TOKEN=
-WHATSAPP_ENABLED=false
-SLACK_TOKEN=
 ```
+
+## Ejecución
+
+```bash
+node index.js
+```
+
+## Requisitos
+
+- [Ollama](https://ollama.ai) corriendo localmente con algún modelo instalado (`ollama pull tinyllama`)
+- Node.js 18+
+
+## Plataformas soportadas
+
+| Plataforma | Variable de entorno | Estado |
+|---|---|---|
+| Telegram | `TELEGRAM_TOKEN` | ✅ Listo |
+| Discord | `DISCORD_TOKEN` | ✅ Listo |
+| WhatsApp | `WHATSAPP_ENABLED=true` | ✅ Listo (escanear QR) |
+| Slack | `SLACK_TOKEN` + `SLACK_APP_TOKEN` | ✅ Listo (requiere `pnpm add @slack/bolt`) |
