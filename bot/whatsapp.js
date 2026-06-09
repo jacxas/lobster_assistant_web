@@ -1,10 +1,10 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
-const { getLobsterResponse } = require('./lobster');
-const qrcode = require('qrcode-terminal');
+import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import { getLobsterResponse } from './lobster.js';
+import qrcode from 'qrcode-terminal';
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    
+
     const sock = makeWASocket({
         auth: state,
         printQRInTerminal: true
