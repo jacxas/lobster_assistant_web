@@ -1,5 +1,5 @@
-const axios = require('axios');
-require('dotenv').config();
+import axios from 'axios';
+import 'dotenv/config';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434/api/generate';
 const MODEL = process.env.MODEL || 'tinyllama';
@@ -12,7 +12,7 @@ Reglas:
 - Responde siempre en el idioma del usuario.
 - Eres local y privado.`;
 
-async function getLobsterResponse(userMessage) {
+export async function getLobsterResponse(userMessage) {
     try {
         const response = await axios.post(OLLAMA_URL, {
             model: MODEL,
@@ -22,8 +22,6 @@ async function getLobsterResponse(userMessage) {
         return response.data.response.trim();
     } catch (error) {
         console.error('Error contactando a Ollama:', error.message);
-        return "¡Mis pinzas se han quedado trabadas! (Error de conexión local). ¡Necesito una exfoliación técnica!";
+        return '¡Mis pinzas se han quedado trabadas! (Error de conexión local). ¡Necesito una exfoliación técnica!';
     }
 }
-
-module.exports = { getLobsterResponse };

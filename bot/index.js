@@ -1,4 +1,4 @@
-require('dotenv').config();
+import 'dotenv/config';
 
 console.log(`
 🦞 INICIANDO EL ASISTENTE LANGOSTA MULTI-PLATAFORMA 🦞
@@ -7,19 +7,19 @@ console.log(`
 
 // Cargar conectores según configuración en .env
 if (process.env.TELEGRAM_TOKEN) {
-    require('./telegram.js');
+    await import('./telegram.js');
 }
 
 if (process.env.DISCORD_TOKEN) {
-    require('./discord.js');
+    await import('./discord.js');
 }
 
 if (process.env.WHATSAPP_ENABLED === 'true') {
-    require('./whatsapp.js');
+    await import('./whatsapp.js');
 }
 
 if (process.env.SLACK_TOKEN) {
-    require('./slack.js'); // Nota: Slack requiere configuración adicional de App
+    await import('./slack.js');
     console.log('Módulo de Slack cargado (requiere configuración de App en Slack API)');
 }
 

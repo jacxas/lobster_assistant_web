@@ -1,6 +1,6 @@
-const { Client, GatewayIntentBits } = require('discord.js');
-const { getLobsterResponse } = require('./lobster');
-require('dotenv').config();
+import { Client, GatewayIntentBits } from 'discord.js';
+import { getLobsterResponse } from './lobster.js';
+import 'dotenv/config';
 
 const token = process.env.DISCORD_TOKEN;
 
@@ -29,7 +29,7 @@ if (!token) {
         if (isMentioned || isDM) {
             console.log(`Mensaje recibido en Discord: ${message.content}`);
             message.channel.sendTyping();
-            
+
             const response = await getLobsterResponse(message.content);
             await message.reply(response);
         }
