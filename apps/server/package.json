@@ -1,0 +1,30 @@
+{
+  "name": "@lobster/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch index.ts",
+    "build": "esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "start": "NODE_ENV=production node dist/index.js",
+    "db:migrate": "tsx -e \"import { runMigrations } from './db/schema.js'; runMigrations();\"",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lobster/shared": "workspace:*",
+    "better-sqlite3": "^11.10.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^24.7.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.0"
+  }
+}
