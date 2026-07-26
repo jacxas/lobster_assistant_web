@@ -1,7 +1,7 @@
 {
   "framework": "vite",
-  "buildCommand": "vite build",
-  "outputDirectory": "dist",
+  "buildCommand": "pnpm --filter @lobster/shared build && pnpm --filter @lobster/web build",
+  "outputDirectory": "apps/web/dist",
   "installCommand": "pnpm install",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
