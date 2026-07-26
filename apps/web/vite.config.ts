@@ -1,11 +1,10 @@
-import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
-import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
+const IS_PROD = process.env.NODE_ENV === "production";
 const PROJECT_ROOT = import.meta.dirname;
 const LOG_DIR = path.join(PROJECT_ROOT, ".manus-logs");
 const MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024;
@@ -46,7 +45,6 @@ function vitePluginManusDebugCollector(): Plugin {
   return {
     name: "manus-debug-collector",
     transformIndexHtml(html) {
-      if (process.env.NODE_ENV === "production") return html;
       return { html, tags: [{ tag: "script", attrs: { src: "/__manus__/debug-collector.js", defer: true }, injectTo: "head" }] };
     },
     configureServer(server: ViteDevServer) {
@@ -93,15 +91,35 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()],
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "src"),
-      "@lobster/shared": path.resolve(import.meta.dirname, "..", "..", "packages", "shared", "src"),
+// Dynamically load Manus-only dev plugins (not available in CI/production)
+async function loadManusPlugins(): Promise<Plugin[]> {
+  if (IS_PROD) return [];
+  try {
+    const [{ jsxLocPlugin }, { vitePluginManusRuntime }] = await Promise.all([
+      import("@builder.io/vite-plugin-jsx-loc"),
+      import("vite-plugin-manus-runtime"),
+    ]);
+    return [jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
+  } catch {
+    return [];
+  }
+}
+
+export default defineConfig(async () => {
+  const manusPlugins = await loadManusPlugins();
+
+  return {
+    // base is the repo name — required for GitHub Pages subdirectory deployment
+    base: IS_PROD ? "/lobster_assistant_web/" : "/",
+    plugins: [react(), tailwindcss(), ...manusPlugins],
+    resolve: {
+      alias: {
+        "@": path.resolve(import.meta.dirname, "src"),
+        "@lobster/shared": path.resolve(import.meta.dirname, "..", "..", "packages", "shared", "src"),
+      },
     },
-  },
-  root: import.meta.dirname,
-  build: { outDir: path.resolve(import.meta.dirname, "dist"), emptyOutDir: true },
-  server: { port: 5173, strictPort: false, host: true },
+    root: import.meta.dirname,
+    build: { outDir: path.resolve(import.meta.dirname, "dist"), emptyOutDir: true },
+    server: { port: 5173, strictPort: false, host: true },
+  };
 });
