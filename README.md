@@ -77,3 +77,7 @@ The `@lobster/shared` package contains:
 ## License
 
 MIT - ¡EXFOLIAR! 🦞
+
+---
+
+Última actualización: 2026-09-13
