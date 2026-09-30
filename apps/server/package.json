@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch index.ts",
-    "build": "esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "esbuild index.ts --platform=node --bundle --format=esm --outdir=dist --external:better-sqlite3",
     "start": "NODE_ENV=production node dist/index.js",
     "db:migrate": "tsx -e \"import { runMigrations } from './db/schema.js'; runMigrations();\"",
     "check": "tsc --noEmit"
@@ -15,7 +15,8 @@
     "better-sqlite3": "^11.10.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
