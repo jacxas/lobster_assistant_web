@@ -7,7 +7,7 @@
     "dev": "tsx watch index.ts",
     "build": "esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
-    "db:migrate": "tsx -e \"import { runMigrations } from './db/schema.js'; runMigrations();\"",
+    "db:migrate": "tsx -e "import { runMigrations } from '../../server/db/schema.js'; runMigrations();" ",
     "check": "tsc --noEmit"
   },
   "dependencies": {
