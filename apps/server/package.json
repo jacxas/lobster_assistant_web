@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch index.ts",
-    "build": "esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "esbuild index.ts --platform=node --bundle --format=esm --outdir=dist --external:better-sqlite3",
     "start": "NODE_ENV=production node dist/index.js",
     "db:migrate": "tsx -e \"import { runMigrations } from './db/schema.js'; runMigrations();\"",
     "check": "tsc --noEmit"
