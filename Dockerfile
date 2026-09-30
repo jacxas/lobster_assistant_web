@@ -1,6 +1,6 @@
-# ──────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # Stage 1: Build
-# ──────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -20,13 +20,18 @@ RUN pnpm install --frozen-lockfile
 # Copy full source after deps are cached
 COPY . .
 
-# Build shared first, then server
+# Build shared first
 RUN pnpm --filter @lobster/shared build
+
+# Build web app (for serving by server)
+RUN pnpm --filter @lobster/web build
+
+# Build server
 RUN pnpm --filter @lobster/server build
 
-# ──────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # Stage 2: Production
-# ──────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS production
 
 WORKDIR /app
@@ -44,6 +49,9 @@ RUN pnpm install --frozen-lockfile --prod
 
 # Copy built server bundle from builder
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
+
+# Copy built web app into server's public directory for SPA serving
+COPY --from=builder /app/apps/web/dist ./apps/server/dist/public
 
 # Data directory for SQLite persistence
 RUN mkdir -p /app/data
