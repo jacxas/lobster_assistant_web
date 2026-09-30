@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { chat } from "@/lib/api";
 import { Activity, Bot, ChevronRight, FolderOpen, Gauge, LayoutDashboard, MessageSquare, Moon, MoreHorizontal, Network, Search, Settings, Terminal, Wifi, Zap } from "lucide-react";
 
 type AppId = "home" | "assistant" | "models" | "channels" | "files" | "system" | "setup" | "settings";
@@ -99,6 +100,64 @@ function Overview({ open }: { open: (id: AppId) => void }) {
   </div>;
 }
 
+function AssistantPanel() {
+  const [message, setMessage] = useState("");
+  const [reply, setReply] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function send() {
+    const text = message.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await chat(text);
+      setReply(result.reply);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Assistant unavailable");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <Panel title="Private conversations">
+    <div className="flex min-h-[420px] flex-col">
+      <div className="flex-1 rounded-xl border border-white/7 bg-black/15 p-5">
+        {reply ? (
+          <div>
+            <p className="mb-2 text-[10px] uppercase tracking-[.18em] text-orange-300/70">Lobster</p>
+            <p className="whitespace-pre-wrap text-sm leading-7 text-white/75">{reply}</p>
+          </div>
+        ) : (
+          <div className="flex h-full min-h-[300px] items-center justify-center text-center">
+            <div>
+              <div className="mb-3 text-4xl">🦞</div>
+              <p className="text-sm text-white/60">Lobster is ready.</p>
+              <p className="mt-1 text-xs text-white/30">Send a message to test the real runtime.</p>
+            </div>
+          </div>
+        )}
+      </div>
+      {error && <p className="mt-3 rounded-lg border border-red-400/20 bg-red-400/5 px-3 py-2 text-xs text-red-300">{error}</p>}
+      <div className="mt-4 flex gap-2">
+        <input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") void send(); }}
+          placeholder={busy ? "Lobster is thinking..." : "Ask Lobster anything..."}
+          disabled={busy}
+          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-orange-400/40 disabled:opacity-50"
+        />
+        <button onClick={() => void send()} disabled={busy || !message.trim()} className="rounded-xl bg-orange-500 px-5 text-sm font-semibold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40">
+          {busy ? "..." : "Send"}
+        </button>
+      </div>
+    </div>
+  </Panel>;
+}
+
 function AppPanel({ id }: { id: AppId }) {
   const configs: Record<AppId, { icon: typeof Bot; heading: string; description: string; items: string[] }> = {
     assistant: { icon: MessageSquare, heading: "Private conversations", description: "Your local assistant workspace. Connect the real runtime here next.", items: ["New conversation", "Recent conversations", "Context & memory", "Runtime status"] },
@@ -160,7 +219,7 @@ export default function DesktopShell() {
         <main className="min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_70%_10%,rgba(249,115,22,.07),transparent_30%),linear-gradient(180deg,#0d0d10_0%,#09090b_100%)]">
           <div className="mx-auto max-w-[1400px] p-5 md:p-7">
             <div className="mb-6 flex items-center gap-3"><div className="rounded-lg border border-white/8 bg-white/5 p-2 text-orange-300"><ActiveIcon className="h-4 w-4" /></div><div><p className="text-[10px] uppercase tracking-[.2em] text-white/25">Lobster Workspace</p><h1 className="text-lg font-semibold text-white">{apps[active].title}</h1></div></div>
-            {active === "home" ? <Overview open={open} /> : <AppPanel id={active} />}
+            {active === "home" ? <Overview open={open} /> : active === "assistant" ? <AssistantPanel /> : <AppPanel id={active} />}
           </div>
         </main>
       </div>
