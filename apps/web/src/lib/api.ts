@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 export async function chat(message: string, model?: string) {
   const response = await fetch(`${API_BASE}/api/chat`, {
@@ -16,11 +16,24 @@ export async function chat(message: string, model?: string) {
   return response.json() as Promise<{ reply: string; platform: string }>;
 }
 
-export async function getStatus() {
-  const response = await fetch(`${API_BASE}/api/status`, { credentials: "include" });
+export type RuntimeStatus = {
+  status: "ok" | "degraded" | string;
+  timestamp: string;
+  services: {
+    ollama: {
+      ok: boolean;
+      models: string[];
+      url: string;
+    };
+  };
+  version: string;
+};
+
+export async function getStatus(): Promise<RuntimeStatus> {
+  const response = await fetch(`${API_BASE}/api/status`, {
+    credentials: "include",
+    cache: "no-store",
+  });
   if (!response.ok) throw new Error(`Status request failed (${response.status})`);
-  return response.json() as Promise<{
-    ok: boolean;
-    services?: { ollama?: { ok: boolean; models?: string[] } };
-  }>;
+  return response.json() as Promise<RuntimeStatus>;
 }
