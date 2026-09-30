@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { nanoid } from "nanoid";
 import { upsertSession, getSession } from "../db/sessions.js";
 
 const COOKIE_NAME = "app_session_id";
-const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 declare global {
   namespace Express {
@@ -16,17 +15,9 @@ declare global {
 export function sessionMiddleware(req: Request, res: Response, next: NextFunction) {
   let sessionId = req.cookies?.[COOKIE_NAME] as string | undefined;
 
-  // Validate existing session is still alive in DB
-  if (sessionId && !getSession(sessionId)) {
-    sessionId = undefined;
-  }
+  if (sessionId && !getSession(sessionId)) sessionId = undefined;
+  if (!sessionId) sessionId = crypto.randomUUID();
 
-  // Create new session if needed
-  if (!sessionId) {
-    sessionId = nanoid();
-  }
-
-  // Upsert refreshes last_seen + extends TTL
   upsertSession(sessionId, { platform: "web" });
 
   res.cookie(COOKIE_NAME, sessionId, {
