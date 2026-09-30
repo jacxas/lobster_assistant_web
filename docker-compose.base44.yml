@@ -1,0 +1,51 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/server/node_modules
+      - /app/packages/shared/node_modules
+    ports:
+      - "3000:5173"
+    environment:
+      - NODE_ENV=development
+      # Vite >= 6.1 appends this to allowedHosts so the preview proxy host is accepted
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+    command: ["sh", "-c", "exec pnpm --filter @lobster/web dev"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 5
+    restart: on-failure
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/server/node_modules
+      - /app/packages/shared/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - OLLAMA_URL=http://ollama:11434
+      - INTERNAL_API_KEY=dev-internal-key
+    command: ["sh", "-c", "exec pnpm --filter @lobster/server dev"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/status"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    restart: on-failure

@@ -1,0 +1,16 @@
+# Development image — installs workspace deps only; source is bind-mounted at runtime
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+
+# Copy workspace manifests + patches so pnpm can resolve the workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches/ ./patches/
+COPY apps/web/package.json ./apps/web/
+COPY apps/server/package.json ./apps/server/
+COPY apps/bot/package.json ./apps/bot/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN pnpm install --frozen-lockfile
