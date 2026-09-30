@@ -5,6 +5,7 @@ import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 
 const IS_PROD = process.env.NODE_ENV === "production";
+// GitHub Pages serves the project under /lobster_assistant_web/; Vercel serves at /.\nconst IS_GITHUB_PAGES = process.env.GITHUB_ACTIONS === "true" && !process.env.VERCEL;
 const PROJECT_ROOT = import.meta.dirname;
 const LOG_DIR = path.join(PROJECT_ROOT, ".manus-logs");
 const MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024;
@@ -110,7 +111,7 @@ export default defineConfig(async () => {
 
   return {
     // base is the repo name — required for GitHub Pages subdirectory deployment
-    base: IS_PROD ? "/lobster_assistant_web/" : "/",
+    base: IS_PROD && IS_GITHUB_PAGES ? "/lobster_assistant_web/" : "/",
     plugins: [react(), tailwindcss(), ...manusPlugins],
     resolve: {
       alias: {

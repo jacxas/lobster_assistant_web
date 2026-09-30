@@ -5,9 +5,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
-# Copy workspace manifests first (better layer caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches/ ./patches/
 COPY apps/server/package.json ./apps/server/
@@ -17,11 +16,11 @@ COPY packages/shared/package.json ./packages/shared/
 
 RUN pnpm install --frozen-lockfile
 
-# Copy full source after deps are cached
 COPY . .
 
-# Build shared first, then server
+# Build the shared package, the browser app, and the server bundle.
 RUN pnpm --filter @lobster/shared build
+RUN pnpm --filter @lobster/web build
 RUN pnpm --filter @lobster/server build
 
 # ──────────────────────────────────────────────────────────────────
@@ -33,7 +32,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches/ ./patches/
@@ -42,14 +41,14 @@ COPY packages/shared/package.json ./packages/shared/
 
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy built server bundle from builder
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
+# The server serves this SPA at / and handles client-side routes.
+COPY --from=builder /app/apps/web/dist ./apps/server/dist/public
 
-# Data directory for SQLite persistence
 RUN mkdir -p /app/data
 
 RUN addgroup -S lobster && adduser -S lobster -G lobster && \
-    chown -R lobster:lobster /app/data
+    chown -R lobster:lobster /app/data /app/apps/server/dist
 USER lobster
 
 EXPOSE 3000
