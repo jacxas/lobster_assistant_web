@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { nanoid } from "nanoid";
+import { randomUUID } from "node:crypto";
 import { upsertSession, getSession } from "../db/sessions.js";
 
 const COOKIE_NAME = "app_session_id";
@@ -23,7 +23,7 @@ export function sessionMiddleware(req: Request, res: Response, next: NextFunctio
 
   // Create new session if needed
   if (!sessionId) {
-    sessionId = nanoid();
+    sessionId = randomUUID();
   }
 
   // Upsert refreshes last_seen + extends TTL
