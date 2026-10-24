@@ -1,63 +1,51 @@
-import express, { type Express, type Request, type Response } from "express";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
+import { createServer } from "http";
+import path from "path";
+import { fileURLToPath } from "url";
+import { runMigrations } from "./db/schema.js";
+import { generalLimiter } from "./middleware/rateLimit.js";
+import { chatRouter } from "./routes/chat.js";
+import { oauthRouter } from "./routes/oauth.js";
+import { statusRouter } from "./routes/status.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const app: Express = express();
-const PORT = process.env.PORT || 3000;
+async function startServer() {
+  // Run DB migrations before accepting requests
+  runMigrations();
 
-// Middleware
-app.use(express.json());
+  const app = express();
+  const server = createServer(app);
 
-// Health check endpoint
-app.get("/api/status", (req: Request, res: Response) => {
-  res.json({
-    status: "online",
-    runtime: "lobster-assistant",
-    version: "1.0.0",
-    timestamp: new Date().toISOString(),
+  app.use(cors({
+    origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+    credentials: true,
+  }));
+  app.use(express.json());
+  app.use(cookieParser());
+
+  app.use("/api", generalLimiter);
+  app.use("/api/oauth", oauthRouter);
+  app.use("/api/chat", chatRouter);
+  app.use("/api/status", statusRouter);
+
+  const staticPath =
+    process.env.NODE_ENV === "production"
+      ? path.resolve(__dirname, "public")
+      : path.resolve(__dirname, "..", "dist", "public");
+
+  app.use(express.static(staticPath));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(staticPath, "index.html"));
   });
-});
 
-// Placeholder chat endpoint (connect to Ollama when needed)
-app.post("/api/chat", (req: Request, res: Response) => {
-  const { message } = req.body;
-
-  if (!message) {
-    res.status(400).json({ error: "Message is required" });
-    return;
-  }
-
-  // Placeholder response - replace with actual Ollama integration
-  res.json({
-    response: "🦞 Hello! I'm the Lobster Assistant. This is a placeholder response. Connect me to your Ollama runtime for real AI conversations.",
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Serve static files from public directory (web app build)
-const publicDir = path.join(__dirname, "public");
-if (fs.existsSync(publicDir)) {
-  app.use(express.static(publicDir));
-
-  // SPA fallback: serve index.html for all non-API routes
-  app.get("*", (req: Request, res: Response) => {
-    res.sendFile(path.join(publicDir, "index.html"));
+  const port = process.env.PORT || 3000;
+  server.listen(port, () => {
+    console.log(`🦞 Lobster server running on http://localhost:${port}/`);
   });
 }
 
-// Error handling
-app.use((err: any, req: Request, res: Response) => {
-  console.error("Error:", err);
-  res.status(500).json({ error: "Internal server error" });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`🦞 Lobster Assistant server running on http://localhost:${PORT}`);
-  if (fs.existsSync(publicDir)) {
-    console.log(`📱 Web app served from ${publicDir}`);
-  }
-});
+startServer().catch(console.error);

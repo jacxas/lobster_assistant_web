@@ -1,10 +1,10 @@
 import { Router, Request, Response } from "express";
 import { sessionMiddleware } from "../middleware/session.js";
-import { upsertSession, deleteSession } from "../db/sessions.js";
+import { upsertSession, deleteSession, getSession } from "../db/sessions.js";
 
 const COOKIE_NAME = "app_session_id";
 
-export const oauthRouter = Router();
+export const oauthRouter: Router = Router();
 oauthRouter.use(sessionMiddleware);
 
 /** GET /api/oauth/callback — receives OAuth code from portal */
@@ -52,7 +52,6 @@ oauthRouter.get("/callback", async (req: Request, res: Response) => {
 
 /** GET /api/oauth/me — returns current session */
 oauthRouter.get("/me", (req: Request, res: Response) => {
-  const { getSession } = require("../db/sessions.js");
   const session = getSession(req.sessionId);
   if (!session?.user_id) {
     res.status(401).json({ error: "Not authenticated" });

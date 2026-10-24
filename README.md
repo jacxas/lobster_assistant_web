@@ -30,6 +30,8 @@ lobster-assistant/
 ## Quick Start
 
 ```bash
+# Windows: doble clic en instalar.bat y sigue los pasos
+
 # Install pnpm (if you don't have it)
 npm install -g pnpm
 
@@ -42,7 +44,7 @@ pnpm dev
 # Or start individually:
 pnpm dev:web      # Frontend only (port 5173)
 pnpm dev:server   # API only (port 3000)
-pnpm dev:bot      # Bots only (requires config.json)
+pnpm dev:bot      # Bots only (requires .env with your tokens)
 ```
 
 ## Commands
@@ -67,12 +69,23 @@ docker compose up -d server   # API + web
 docker compose up -d bot      # Chat bots
 ```
 
+## Bots
+
+Configura los tokens con el asistente interactivo:
+
+```bash
+pnpm setup   # genera apps/bot/.env (TELEGRAM_TOKEN, DISCORD_TOKEN, etc.)
+pnpm dev:bot
+```
+
+WhatsApp muestra un código QR en la terminal la primera vez (escanéalo con la app).
+
 ## Shared Package
 
 The `@lobster/shared` package contains:
 - **Types** (`ChatMessage`, `BotConfig`, `ChatSession`, etc.)
 - **Constants** (`COOKIE_NAME`, `SYSTEM_PROMPT`, `DEFAULT_MODEL`, etc.)
-- Used by `apps/web`, `apps/server`, and `apps/bot`
+- Used by `apps/web` and `apps/server`
 
 ## License
 
@@ -80,4 +93,4 @@ MIT - ¡EXFOLIAR! 🦞
 
 ---
 
-Última actualización: 2026-09-13
+Última actualización: 2026-10-24

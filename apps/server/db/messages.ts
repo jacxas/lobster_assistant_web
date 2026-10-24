@@ -1,4 +1,5 @@
 import db from "./client.js";
+import type { ChatMessage } from "../services/ollama.js";
 
 export interface Message {
   id: number;
@@ -39,8 +40,9 @@ export function saveMessage(
 export function getHistory(
   session_id: string,
   limit = 20
-): Array<{ role: string; content: string }> {
-  return getHistoryStmt.all(session_id, limit) as any[];
+): ChatMessage[] {
+  // El CHECK de la tabla garantiza role IN (user, assistant, system)
+  return getHistoryStmt.all(session_id, limit) as ChatMessage[];
 }
 
 export function countMessages(session_id: string): number {

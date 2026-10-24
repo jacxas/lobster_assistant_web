@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { checkOllama } from "../services/ollama.js";
 
-export const statusRouter = Router();
+export const statusRouter: Router = Router();
 
 /** GET /api/status — returns system health */
 statusRouter.get("/", async (_req: Request, res: Response) => {

@@ -11,6 +11,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "declaration": false,
+    "declarationMap": false,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
