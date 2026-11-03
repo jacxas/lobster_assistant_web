@@ -13,7 +13,7 @@ docker compose -f docker-compose.base44.yml up -d --build
 ```
 - Web: `http://localhost:3000` (Vite dev server, live reload)
 - Server API: internal only; `/api/*` is proxied from Vite to `http://server:3001`
-- Ollama: internal only (`ollama` service); `ollama-init` pulls `${OLLAMA_MODEL:-tinyllama}` (637 MB) on first boot
+- Ollama: internal only; the `ollama` service starts the API and pulls `${OLLAMA_MODEL:-tinyllama}` (637 MB) in the background on first boot
 - All services build from `Dockerfile.dev` which installs workspace deps; source is bind-mounted for live reload
 
 ## Assistant chat

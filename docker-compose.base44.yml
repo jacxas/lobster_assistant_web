@@ -65,31 +65,28 @@ services:
 
   ollama:
     image: ollama/ollama:latest
+    environment:
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-tinyllama}
     volumes:
       - ollama_models:/root/.ollama
     labels:
       base44.project: "Ollama"
       base44.kind: "infra"
+    # Serve as PID 1; a background job waits for the API then pulls the default
+    # model once. Keeping this in one long-running service avoids a one-shot
+    # container that exits and looks unhealthy.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ( until ollama list >/dev/null 2>&1; do sleep 1; done; ollama pull "$${OLLAMA_MODEL:-tinyllama}" ) &
+        exec ollama serve
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 10s
       timeout: 5s
-      start_period: 30s
+      start_period: 60s
       retries: 10
     restart: on-failure
-
-  # One-shot: pull the default model so the assistant can reply
-  ollama-init:
-    image: ollama/ollama:latest
-    depends_on:
-      ollama:
-        condition: service_healthy
-    environment:
-      - OLLAMA_HOST=http://ollama:11434
-    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_MODEL:-tinyllama}"]
-    volumes:
-      - ollama_models:/root/.ollama
-    restart: "no"
 
 volumes:
   ollama_models:
