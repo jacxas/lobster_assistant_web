@@ -61,7 +61,7 @@ function Overview({ open }: { open: (id: AppId) => void }) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {[
         ["Runtime", "Online", "Ollama / Local", "text-emerald-400"],
-        ["Active model", "tinyllama", "1.1 GB", "text-orange-300"],
+        ["Active model", "llama3.2:1b", "1.3 GB", "text-orange-300"],
         ["Channels", "3 / 4", "Telegram, Discord, Slack", "text-sky-300"],
         ["Privacy", "Local", "No cloud required", "text-violet-300"],
       ].map(([label, value, meta, color]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
@@ -92,7 +92,7 @@ function Overview({ open }: { open: (id: AppId) => void }) {
 
     <Panel title="Recent activity">
       <div className="space-y-1">
-        {["Ollama runtime detected", "tinyllama loaded successfully", "Discord channel connected", "Workspace initialized"].map((item, i) => <div key={item} className="flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-white/[0.03]">
+        {["Ollama runtime detected", "llama3.2:1b loaded successfully", "Discord channel connected", "Workspace initialized"].map((item, i) => <div key={item} className="flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-white/[0.03]">
           <Activity className="h-4 w-4 text-emerald-400/70" /><span className="text-sm text-white/55">{item}</span><span className="ml-auto text-[10px] text-white/25">{i + 1}m ago</span>
         </div>)}
       </div>
@@ -105,7 +105,7 @@ function AppPanel({ id }: { id: AppId }) {
 
   const configs: Record<AppId, { icon: typeof Bot; heading: string; description: string; items: string[] }> = {
     assistant: { icon: MessageSquare, heading: "Private conversations", description: "Your local assistant workspace. Connect the real runtime here next.", items: ["New conversation", "Recent conversations", "Context & memory", "Runtime status"] },
-    models: { icon: Bot, heading: "Local models", description: "Models discovered from the local AI runtime.", items: ["tinyllama · ready", "llama3 · available", "mistral · available", "Add model"] },
+    models: { icon: Bot, heading: "Local models", description: "Models discovered from the local AI runtime.", items: ["llama3.2:1b · ready", "tinyllama · available", "mistral · available", "Add model"] },
     channels: { icon: Network, heading: "Connected channels", description: "Messaging integrations managed by Lobster.", items: ["Telegram · connected", "Discord · connected", "Slack · connected", "WhatsApp · setup required"] },
     files: { icon: FolderOpen, heading: "Workspace files", description: "Local project files, logs and assistant data.", items: ["workspace/", ".lobster/", "logs/", "configuration.json"] },
     system: { icon: Gauge, heading: "Runtime telemetry", description: "Local resource and service status.", items: ["Ollama · online", "Node runtime · online", "API server · online", "Bot worker · online"] },

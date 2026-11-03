@@ -13,12 +13,12 @@ docker compose -f docker-compose.base44.yml up -d --build
 ```
 - Web: `http://localhost:3000` (Vite dev server, live reload)
 - Server API: internal only; `/api/*` is proxied from Vite to `http://server:3001`
-- Ollama: internal only; the `ollama` service starts the API and pulls `${OLLAMA_MODEL:-tinyllama}` (637 MB) in the background on first boot
+- Ollama: internal only; the `ollama` service starts the API and pulls `${OLLAMA_MODEL:-llama3.2:1b}` (~1.3 GB) in the background on first boot
 - All services build from `Dockerfile.dev` which installs workspace deps; source is bind-mounted for live reload
 
 ## Assistant chat
 - `POST /api/chat` accepts either `{ message }` or `{ messages: [{ role, content }] }` and forwards the conversation to Ollama `/api/chat` (non-streaming)
-- Uses `OLLAMA_URL` (default `http://localhost:11434`), `OLLAMA_MODEL` (default `tinyllama` from `@lobster/shared/const`) and the shared `SYSTEM_PROMPT`
+- Uses `OLLAMA_URL` (default `http://localhost:11434`), `OLLAMA_MODEL` (default `llama3.2:1b` from `@lobster/shared/const`) and the shared `SYSTEM_PROMPT`
 - Returns `503` with a readable message when Ollama is unreachable or the model is missing
 - UI: `apps/web/src/components/AssistantChat.tsx`, rendered by `DesktopShell` when the Assistant tab is active
 
