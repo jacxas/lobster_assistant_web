@@ -5,7 +5,8 @@ import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 
 const IS_PROD = process.env.NODE_ENV === "production";
-// GitHub Pages serves the project under /lobster_assistant_web/; Vercel serves at /.\nconst IS_GITHUB_PAGES = process.env.GITHUB_ACTIONS === "true" && !process.env.VERCEL;
+// GitHub Pages serves the project under /lobster_assistant_web/; other hosts serve at /.
+const IS_GITHUB_PAGES = process.env.GITHUB_ACTIONS === "true" && !process.env.VERCEL;
 const PROJECT_ROOT = import.meta.dirname;
 const LOG_DIR = path.join(PROJECT_ROOT, ".manus-logs");
 const MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024;
