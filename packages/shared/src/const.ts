@@ -4,7 +4,7 @@ export const COOKIE_NAME = "app_session_id";
 export const ONE_YEAR_MS = 1000 * 60 * 60 * 24 * 365;
 
 // Bot configuration defaults
-export const DEFAULT_MODEL = "tinyllama";
+export const DEFAULT_MODEL = "llama3.2:1b";
 export const DEFAULT_OLLAMA_URL = "http://localhost:11434";
 export const DEFAULT_CONTEXT_WINDOW = 10;
 export const DEFAULT_MAX_RESPONSE_LENGTH = 500;

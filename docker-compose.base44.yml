@@ -1,0 +1,92 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/server/node_modules
+      - /app/packages/shared/node_modules
+    ports:
+      - "3000:5173"
+    environment:
+      - NODE_ENV=development
+      # Vite >= 6.1 appends this to allowedHosts so the preview proxy host is accepted
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+      # Browser calls /api/* on the Vite origin; proxy them to the API service
+      - VITE_API_PROXY=http://server:3001
+    labels:
+      base44.project: "Web"
+      base44.kind: "web"
+      base44.port: "3000"
+    command: ["sh", "-c", "exec pnpm --filter @lobster/web dev"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 5
+    restart: on-failure
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/server/node_modules
+      - /app/packages/shared/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:1b}
+      - INTERNAL_API_KEY=dev-internal-key
+    labels:
+      base44.project: "Server"
+      base44.kind: "worker"
+    command: ["sh", "-c", "exec pnpm --filter @lobster/server dev"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/status"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    restart: on-failure
+
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:1b}
+    volumes:
+      - ollama_models:/root/.ollama
+    labels:
+      base44.project: "Ollama"
+      base44.kind: "infra"
+    # Serve as PID 1; a background job waits for the API then pulls the default
+    # model once. Keeping this in one long-running service avoids a one-shot
+    # container that exits and looks unhealthy.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ( until ollama list >/dev/null 2>&1; do sleep 1; done; ollama pull "$${OLLAMA_MODEL:-llama3.2:1b}" ) &
+        exec ollama serve
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 10
+    restart: on-failure
+
+volumes:
+  ollama_models:
