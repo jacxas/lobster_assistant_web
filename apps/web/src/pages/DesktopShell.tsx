@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Activity, Bot, ChevronRight, FolderOpen, Gauge, LayoutDashboard, MessageSquare, Moon, MoreHorizontal, Network, Search, Settings, Terminal, Wifi, Zap } from "lucide-react";
+import AssistantChat from "@/components/AssistantChat";
 
 type AppId = "home" | "assistant" | "models" | "channels" | "files" | "system" | "setup" | "settings";
 
@@ -100,6 +101,8 @@ function Overview({ open }: { open: (id: AppId) => void }) {
 }
 
 function AppPanel({ id }: { id: AppId }) {
+  if (id === "assistant") return <AssistantChat />;
+
   const configs: Record<AppId, { icon: typeof Bot; heading: string; description: string; items: string[] }> = {
     assistant: { icon: MessageSquare, heading: "Private conversations", description: "Your local assistant workspace. Connect the real runtime here next.", items: ["New conversation", "Recent conversations", "Context & memory", "Runtime status"] },
     models: { icon: Bot, heading: "Local models", description: "Models discovered from the local AI runtime.", items: ["tinyllama · ready", "llama3 · available", "mistral · available", "Add model"] },

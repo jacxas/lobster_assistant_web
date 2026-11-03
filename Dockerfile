@@ -50,6 +50,9 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built server bundle from builder
 COPY --from=builder /app/apps/server/dist ./apps/server/dist
 
+# Copy built shared package (server imports @lobster/shared/const at runtime)
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+
 # Copy built web app into server's public directory for SPA serving
 COPY --from=builder /app/apps/web/dist ./apps/server/dist/public
 

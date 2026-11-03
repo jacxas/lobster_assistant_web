@@ -124,6 +124,14 @@ export default defineConfig(async () => {
     },
     root: import.meta.dirname,
     build: { outDir: path.resolve(import.meta.dirname, "dist"), emptyOutDir: true },
-    server: { port: 5173, strictPort: false, host: true },
+    server: {
+      port: 5173,
+      strictPort: false,
+      host: true,
+      proxy: {
+        // Same-origin API calls are forwarded to the Express server (compose sets VITE_API_PROXY)
+        "/api": { target: process.env.VITE_API_PROXY || "http://localhost:3001", changeOrigin: true },
+      },
+    },
   };
 });

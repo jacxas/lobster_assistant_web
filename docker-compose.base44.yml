@@ -16,6 +16,12 @@ services:
       - NODE_ENV=development
       # Vite >= 6.1 appends this to allowedHosts so the preview proxy host is accepted
       - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+      # Browser calls /api/* on the Vite origin; proxy them to the API service
+      - VITE_API_PROXY=http://server:3001
+    labels:
+      base44.project: "Web"
+      base44.kind: "web"
+      base44.port: "3000"
     command: ["sh", "-c", "exec pnpm --filter @lobster/web dev"]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
@@ -40,8 +46,15 @@ services:
       - NODE_ENV=development
       - PORT=3001
       - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-tinyllama}
       - INTERNAL_API_KEY=dev-internal-key
+    labels:
+      base44.project: "Server"
+      base44.kind: "worker"
     command: ["sh", "-c", "exec pnpm --filter @lobster/server dev"]
+    depends_on:
+      ollama:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/status"]
       interval: 10s
@@ -49,3 +62,34 @@ services:
       start_period: 30s
       retries: 5
     restart: on-failure
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_models:/root/.ollama
+    labels:
+      base44.project: "Ollama"
+      base44.kind: "infra"
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+    restart: on-failure
+
+  # One-shot: pull the default model so the assistant can reply
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_MODEL:-tinyllama}"]
+    volumes:
+      - ollama_models:/root/.ollama
+    restart: "no"
+
+volumes:
+  ollama_models:
