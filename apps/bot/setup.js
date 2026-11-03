@@ -39,7 +39,7 @@ async function startSetup() {
     console.log(`
 ✅ ¡Configuración guardada en .env!
 Tus pinzas están listas. Para iniciar el asistente, usa:
-node bot/index.js
+pnpm dev:bot  (desde la raiz del repositorio)
 
 ¡EXFOLIAR! 🦞
 `);

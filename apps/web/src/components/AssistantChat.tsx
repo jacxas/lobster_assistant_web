@@ -34,11 +34,11 @@ export default function AssistantChat() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ message: content, stream: false, history: messages }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `The assistant could not reply (${res.status}).`);
-      setMessages((prev) => [...prev, { role: "assistant", content: String(data.response) }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: String(data.reply) }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "The assistant could not reply.");
     } finally {

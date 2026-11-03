@@ -1,111 +1,51 @@
-import express, { type Express, type Request, type Response } from "express";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { DEFAULT_MODEL, SYSTEM_PROMPT } from "@lobster/shared/const";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
+import { createServer } from "http";
+import path from "path";
+import { fileURLToPath } from "url";
+import { runMigrations } from "./db/schema.js";
+import { generalLimiter } from "./middleware/rateLimit.js";
+import { chatRouter } from "./routes/chat.js";
+import { oauthRouter } from "./routes/oauth.js";
+import { statusRouter } from "./routes/status.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const app: Express = express();
-const PORT = process.env.PORT || 3000;
-const OLLAMA_URL = (process.env.OLLAMA_URL || "http://localhost:11434").replace(/\/+$/, "");
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || DEFAULT_MODEL;
+async function startServer() {
+  // Run DB migrations before accepting requests
+  runMigrations();
 
-// Middleware
-app.use(express.json());
+  const app = express();
+  const server = createServer(app);
 
-// Health check endpoint
-app.get("/api/status", (req: Request, res: Response) => {
-  res.json({
-    status: "online",
-    runtime: "lobster-assistant",
-    version: "1.0.0",
-    model: OLLAMA_MODEL,
-    timestamp: new Date().toISOString(),
+  app.use(cors({
+    origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+    credentials: true,
+  }));
+  app.use(express.json());
+  app.use(cookieParser());
+
+  app.use("/api", generalLimiter);
+  app.use("/api/oauth", oauthRouter);
+  app.use("/api/chat", chatRouter);
+  app.use("/api/status", statusRouter);
+
+  const staticPath =
+    process.env.NODE_ENV === "production"
+      ? path.resolve(__dirname, "public")
+      : path.resolve(__dirname, "..", "dist", "public");
+
+  app.use(express.static(staticPath));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(staticPath, "index.html"));
   });
-});
 
-type ChatTurn = { role: "user" | "assistant" | "system"; content: string };
-
-// Chat endpoint backed by the local Ollama runtime
-app.post("/api/chat", async (req: Request, res: Response) => {
-  const body = req.body ?? {};
-  const incoming: ChatTurn[] = Array.isArray(body.messages)
-    ? body.messages
-    : typeof body.message === "string"
-      ? [{ role: "user", content: body.message }]
-      : [];
-
-  const conversation = incoming
-    .filter((m) => m && typeof m.content === "string" && ["user", "assistant", "system"].includes(m.role))
-    .map((m) => ({ role: m.role, content: m.content }));
-
-  if (!conversation.some((m) => m.role === "user" && m.content.trim())) {
-    res.status(400).json({ error: "Message is required" });
-    return;
-  }
-
-  const messages = conversation.some((m) => m.role === "system")
-    ? conversation
-    : [{ role: "system" as const, content: SYSTEM_PROMPT }, ...conversation];
-
-  try {
-    const response = await fetch(`${OLLAMA_URL}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: OLLAMA_MODEL, messages, stream: false }),
-      signal: AbortSignal.timeout(120_000),
-    });
-
-    if (!response.ok) {
-      const detail = (await response.text()).slice(0, 300);
-      res.status(502).json({ error: `Ollama responded with ${response.status}. ${detail}` });
-      return;
-    }
-
-    const data = (await response.json()) as {
-      message?: { content?: string };
-      response?: string;
-      model?: string;
-    };
-    const reply = data.message?.content?.trim() || data.response?.trim();
-
-    if (!reply) {
-      res.status(502).json({ error: "Ollama returned an empty response." });
-      return;
-    }
-
-    res.json({ response: reply, model: data.model ?? OLLAMA_MODEL, timestamp: new Date().toISOString() });
-  } catch (error) {
-    console.error("Ollama chat failed:", error);
-    res.status(503).json({
-      error: `The local Ollama runtime is not reachable at ${OLLAMA_URL}. Check that the "ollama" service is running and the "${OLLAMA_MODEL}" model is pulled.`,
-    });
-  }
-});
-
-// Serve static files from public directory (web app build)
-const publicDir = path.join(__dirname, "public");
-if (fs.existsSync(publicDir)) {
-  app.use(express.static(publicDir));
-
-  // SPA fallback: serve index.html for all non-API routes
-  app.get("*", (req: Request, res: Response) => {
-    res.sendFile(path.join(publicDir, "index.html"));
+  const port = process.env.PORT || 3000;
+  server.listen(port, () => {
+    console.log(`🦞 Lobster server running on http://localhost:${port}/`);
   });
 }
 
-// Error handling
-app.use((err: any, req: Request, res: Response) => {
-  console.error("Error:", err);
-  res.status(500).json({ error: "Internal server error" });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`🦞 Lobster Assistant server running on http://localhost:${PORT}`);
-  console.log(`🧠 Ollama runtime: ${OLLAMA_URL} (model: ${OLLAMA_MODEL})`);
-  if (fs.existsSync(publicDir)) {
-    console.log(`📱 Web app served from ${publicDir}`);
-  }
-});
+startServer().catch(console.error);

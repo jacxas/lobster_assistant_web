@@ -5,7 +5,7 @@ import { chatLimiter } from "../middleware/rateLimit.js";
 import { streamChat, chat, ChatMessage } from "../services/ollama.js";
 import { saveMessage, getHistory, clearHistory } from "../db/messages.js";
 
-export const chatRouter = Router();
+export const chatRouter: Router = Router();
 chatRouter.use(sessionMiddleware);
 chatRouter.use(chatLimiter);
 
