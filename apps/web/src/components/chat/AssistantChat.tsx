@@ -38,6 +38,7 @@ export default function AssistantChat() {
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [agentMode, setAgentMode] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const idRef = useRef(0);
@@ -118,11 +119,11 @@ export default function AssistantChat() {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/api/chat`, {
+      const res = await fetch(agentMode ? `${API_BASE}/api/agent` : `${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ message: text, stream: true }),
+        body: JSON.stringify(agentMode ? { task: text, stream: true } : { message: text, stream: true }),
         signal: controller.signal,
       });
       if (!res.ok) throw new Error(`El servidor respondió con estado ${res.status}`);
@@ -214,6 +215,19 @@ export default function AssistantChat() {
         <Button
           variant="ghost"
           size="sm"
+          onClick={() => setAgentMode((v) => !v)}
+          disabled={streaming || clearing}
+          title="Alternar modo agente (permite que use herramientas del PC)"
+          className={cn(
+            "rounded-lg border border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-40",
+            agentMode && "border-orange-400/40 bg-orange-400/10 text-orange-300"
+          )}
+        >
+          <Bot className="h-3.5 w-3.5" /> Agente {agentMode ? "ON" : "OFF"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => void handleClearHistory()}
           disabled={streaming || clearing}
           title="Borrar historial"
@@ -280,7 +294,7 @@ export default function AssistantChat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={streaming}
-            placeholder={streaming ? "Esperando respuesta…" : "Escribe un mensaje…"}
+            placeholder={streaming ? "Esperando respuesta…" : agentMode ? "Tarea para el agente (puede usar herramientas del PC)…" : "Escribe un mensaje…"}
             className="h-11 flex-1 rounded-xl border-white/10 bg-black/20 text-sm text-white placeholder:text-white/25 focus-visible:border-orange-400/40 focus-visible:ring-orange-400/20"
           />
           {streaming ? (

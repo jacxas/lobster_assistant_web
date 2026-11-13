@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import { runMigrations } from "./db/schema.js";
 import { generalLimiter } from "./middleware/rateLimit.js";
 import { chatRouter } from "./routes/chat.js";
+import { agentRouter } from "./routes/agent.js";
 import { oauthRouter } from "./routes/oauth.js";
 import { statusRouter } from "./routes/status.js";
 
@@ -33,6 +34,7 @@ export function buildApp(): Express {
   app.use("/api", generalLimiter);
   app.use("/api/oauth", oauthRouter);
   app.use("/api/chat", chatRouter);
+  app.use("/api/agent", agentRouter);
   app.use("/api/status", statusRouter);
 
   const staticPath =
