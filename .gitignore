@@ -74,3 +74,7 @@ temp/
 
 # Manus version file
 client/public/__manus__/version.json
+
+# WhatsApp session (baileys)
+auth_info_baileys/
+apps/bot/auth_info_baileys/
