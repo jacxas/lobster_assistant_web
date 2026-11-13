@@ -15,7 +15,7 @@ if (!token) {
 
         await ctx.replyWithChatAction('typing');
 
-        const response = await getLobsterResponse(userMessage);
+        const response = await getLobsterResponse(userMessage, { platform: 'telegram', chatId: ctx.chat.id });
         await ctx.reply(response);
     });
 

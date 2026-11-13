@@ -1,5 +1,12 @@
+import { DEFAULT_MODEL as SHARED_DEFAULT_MODEL, DEFAULT_MAX_RESPONSE_LENGTH } from "@lobster/shared";
+
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
-const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3";
+const DEFAULT_MODEL = process.env.OLLAMA_MODEL || SHARED_DEFAULT_MODEL;
+
+/** num_predict cap sent to Ollama: OLLAMA_NUM_PREDICT env override or shared default */
+function resolveNumPredict(): number {
+  return parseInt(process.env.OLLAMA_NUM_PREDICT ?? "") || DEFAULT_MAX_RESPONSE_LENGTH;
+}
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
@@ -32,13 +39,21 @@ export async function streamChat(
   model = DEFAULT_MODEL,
   onChunk: (text: string) => void,
   onDone: () => void,
-  onError: (err: Error) => void
+  onError: (err: Error) => void,
+  signal?: AbortSignal
 ) {
   try {
+    const payload: Record<string, unknown> = { model, messages, stream: true };
+    const numPredict = resolveNumPredict();
+    if (Number.isInteger(numPredict) && numPredict > 0) {
+      payload.options = { num_predict: numPredict };
+    }
+
     const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages, stream: true }),
+      body: JSON.stringify(payload),
+      signal,
     });
 
     if (!res.ok || !res.body) {
@@ -47,38 +62,87 @@ export async function streamChat(
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = "";
+    let sawDone = false;
 
+    const consumeLine = (line: string): boolean => {
+      if (!line.trim()) return false;
+      try {
+        const chunk = JSON.parse(line) as OllamaStreamChunk;
+        if (chunk.message?.content) onChunk(chunk.message.content);
+        if (chunk.done) return true;
+      } catch { /* skip malformed lines */ }
+      return false;
+    };
+
+    // Line-buffered: an NDJSON line can be split across TCP reads,
+    // and a multibyte char can be split across chunks.
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-
-      const lines = decoder.decode(value).split("\n").filter(Boolean);
-      for (const line of lines) {
-        try {
-          const chunk = JSON.parse(line) as OllamaStreamChunk;
-          if (chunk.message?.content) onChunk(chunk.message.content);
-          if (chunk.done) { onDone(); return; }
-        } catch { /* skip malformed lines */ }
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIdx = buffer.indexOf("\n");
+      while (newlineIdx >= 0) {
+        if (consumeLine(buffer.slice(0, newlineIdx))) { sawDone = true; break; }
+        buffer = buffer.slice(newlineIdx + 1);
+        newlineIdx = buffer.indexOf("\n");
       }
+      if (sawDone) break;
     }
+    if (!sawDone) consumeLine(buffer + decoder.decode());
     onDone();
   } catch (err) {
     onError(err instanceof Error ? err : new Error(String(err)));
   }
 }
 
-/** Non-streaming chat (used by bots) */
+/** Non-streaming chat (used by bots): streams internally to avoid undici's ~300s timeout on slow machines */
 export async function chat(
   messages: ChatMessage[],
-  model = DEFAULT_MODEL
+  model = DEFAULT_MODEL,
+  signal?: AbortSignal
 ): Promise<string> {
+  const payload: Record<string, unknown> = { model, messages, stream: true };
+  const numPredict = resolveNumPredict();
+  if (Number.isInteger(numPredict) && numPredict > 0) {
+    payload.options = { num_predict: numPredict };
+  }
+
   const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages, stream: false }),
+    body: JSON.stringify(payload),
+    signal,
   });
 
   if (!res.ok) throw new Error(`Ollama error: ${res.status}`);
-  const data = await res.json() as { message: { content: string } };
-  return data.message?.content || "";
+  if (!res.body) throw new Error(`Ollama error: ${res.status} empty body`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let reply = "";
+
+  const consumeLine = (line: string): void => {
+    if (!line.trim()) return;
+    try {
+      const chunk = JSON.parse(line) as OllamaStreamChunk;
+      if (chunk.message?.content) reply += chunk.message.content;
+    } catch { /* skip malformed lines */ }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let newlineIdx = buffer.indexOf("\n");
+    while (newlineIdx >= 0) {
+      consumeLine(buffer.slice(0, newlineIdx));
+      buffer = buffer.slice(newlineIdx + 1);
+      newlineIdx = buffer.indexOf("\n");
+    }
+  }
+  consumeLine(buffer + decoder.decode());
+
+  return reply;
 }

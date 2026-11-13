@@ -7,9 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // In production use /app/data (Docker volume), in dev use local .data/
 const dataDir =
-  process.env.NODE_ENV === "production"
+  process.env.DATA_DIR ||
+  (process.env.NODE_ENV === "production"
     ? "/app/data"
-    : path.resolve(__dirname, "../../.data");
+    : path.resolve(__dirname, "../../.data"));
 
 fs.mkdirSync(dataDir, { recursive: true });
 

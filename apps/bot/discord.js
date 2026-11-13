@@ -30,7 +30,7 @@ if (!token) {
             console.log(`Mensaje recibido en Discord: ${message.content}`);
             message.channel.sendTyping();
 
-            const response = await getLobsterResponse(message.content);
+            const response = await getLobsterResponse(message.content, { platform: 'discord', chatId: message.channel.id });
             await message.reply(response);
         }
     });

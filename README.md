@@ -78,6 +78,8 @@ pnpm setup   # genera apps/bot/.env (TELEGRAM_TOKEN, DISCORD_TOKEN, etc.)
 pnpm dev:bot
 ```
 
+Los bots hablan con el server local (cerebro unificado + memoria en SQLite): arranca `pnpm dev:server` antes de `pnpm dev:bot`.
+
 WhatsApp muestra un código QR en la terminal la primera vez (escanéalo con la app).
 
 ## Shared Package

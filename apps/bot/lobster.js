@@ -1,34 +1,33 @@
 import 'dotenv/config';
 
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434/api/generate';
-const MODEL = process.env.MODEL || 'tinyllama';
+// Cerebro unificado: el bot NO habla directo con Ollama.
+// Llama al endpoint /api/chat del server Lobster (una sola personalidad,
+// un solo historial en SQLite). Requiere el server corriendo: pnpm dev:server
+const SERVER_URL = (process.env.LOBSTER_SERVER_URL || 'http://127.0.0.1:3000').replace(/\/+$/, '');
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || '';
 
-const SYSTEM_PROMPT = `Eres una langosta de IA inteligente y excéntrica. Tu misión es ayudar al usuario. 
-Reglas:
-- Tono entusiasta y leal.
-- Usa metáforas marinas (pinzas, arrecifes, burbujas).
-- Menciona la "exfoliación" de vez en cuando (¡EXFOLIAR!).
-- Responde siempre en el idioma del usuario.
-- Eres local y privado.`;
-
-export async function getLobsterResponse(userMessage) {
+export async function getLobsterResponse(userMessage, { platform = 'discord', chatId } = {}) {
     try {
-        const response = await fetch(OLLAMA_URL, {
+        const response = await fetch(`${SERVER_URL}/api/chat`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(INTERNAL_API_KEY ? { 'x-internal-key': INTERNAL_API_KEY } : {}),
+            },
             body: JSON.stringify({
-                model: MODEL,
-                prompt: `${SYSTEM_PROMPT}\n\nUsuario: ${userMessage}\nLangosta:`,
-                stream: false
+                message: userMessage,
+                platform,
+                stream: false,
+                ...(chatId ? { chatId: String(chatId) } : {}),
             })
         });
         if (!response.ok) {
-            throw new Error(`Ollama respondio HTTP ${response.status}`);
+            throw new Error(`Server respondio HTTP ${response.status}`);
         }
         const data = await response.json();
-        return (data.response || '').trim();
+        return (data.reply || '').trim() || '...';
     } catch (error) {
-        console.error('Error contactando a Ollama:', error.message);
-        return '¡Mis pinzas se han quedado trabadas! (Error de conexión local). ¡Necesito una exfoliación técnica!';
+        console.error('Error contactando al servidor Lobster:', error.message);
+        return '¡Mis pinzas se han quedado trabadas! (No llego al servidor). ¿Está corriendo "pnpm dev:server"? ¡Necesito una exfoliación técnica!';
     }
 }

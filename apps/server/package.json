@@ -8,7 +8,8 @@
     "build": "esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "db:migrate": "tsx -e \"import { runMigrations } from './db/schema.js'; runMigrations();\"",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@lobster/shared": "workspace:*",
@@ -26,6 +27,7 @@
     "@types/node": "^24.7.0",
     "esbuild": "^0.25.0",
     "tsx": "^4.19.1",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
   }
 }

@@ -21,7 +21,7 @@ const app = new App({
 app.message(async ({ message, say }) => {
     if (message.subtype) return; // ignorar mensajes del sistema
     console.log(`Mensaje recibido en Slack: ${message.text}`);
-    const response = await getLobsterResponse(message.text);
+    const response = await getLobsterResponse(message.text, { platform: 'slack', chatId: message.channel });
     await say(response);
 });
 

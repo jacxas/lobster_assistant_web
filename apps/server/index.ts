@@ -1,6 +1,6 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express from "express";
+import express, { type Express, type Request, type Response } from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,12 +13,15 @@ import { statusRouter } from "./routes/status.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
-  // Run DB migrations before accepting requests
+/**
+ * Configura la app Express (migraciones incluidas).
+ * Exportada para poder testear sin abrir puerto.
+ */
+export function buildApp(): Express {
+  // Run DB migrations before accepting requests (idempotente)
   runMigrations();
 
   const app = express();
-  const server = createServer(app);
 
   app.use(cors({
     origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
@@ -41,6 +44,19 @@ async function startServer() {
   app.get("*", (_req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
   });
+
+  // Error handling
+  app.use((err: any, _req: Request, res: Response) => {
+    console.error("Error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  });
+
+  return app;
+}
+
+async function startServer() {
+  const app = buildApp();
+  const server = createServer(app);
 
   const port = process.env.PORT || 3000;
   server.listen(port, () => {

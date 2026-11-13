@@ -15,10 +15,12 @@ const insertStmt = db.prepare(
 );
 
 const getHistoryStmt = db.prepare(`
-  SELECT role, content FROM messages
-  WHERE session_id = ?
-  ORDER BY created_at ASC
-  LIMIT ?
+  SELECT role, content FROM (
+    SELECT role, content, created_at, id FROM messages
+    WHERE session_id = ?
+    ORDER BY created_at DESC, id DESC
+    LIMIT ?
+  ) ORDER BY created_at ASC, id ASC
 `);
 
 const countStmt = db.prepare(

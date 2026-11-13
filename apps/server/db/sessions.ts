@@ -66,5 +66,5 @@ export function purgeExpiredSessions() {
   }
 }
 
-// Auto-purge every hour
-setInterval(purgeExpiredSessions, 60 * 60 * 1000);
+// Auto-purge every hour (unref: no mantiene vivo el proceso, p.ej. en tests)
+setInterval(purgeExpiredSessions, 60 * 60 * 1000).unref?.();

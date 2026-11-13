@@ -1,27 +1,30 @@
 # 🦞 Lobster Bot — Multi-plataforma
 
-Bot de IA local que conecta Ollama con Telegram, Discord, WhatsApp y Slack.
+Bots de Telegram, Discord, WhatsApp y Slack para el Asistente Lobster.
 
-## Instalación
+**Cerebro unificado**: los bots no hablan directo con Ollama — llaman al
+endpoint `/api/chat` de `apps/server`, que define la personalidad, guarda el
+historial en SQLite y aplica rate limiting. Un solo cerebro, una sola memoria.
 
-```bash
-cd bot
-npm install
-# o si usás pnpm:
-pnpm install
-```
+## Requisitos
+
+- El server Lobster corriendo: `pnpm dev:server` (desde la raíz del repo)
+- Node.js 20+
 
 ## Configuración
 
-Ejecutá el wizard:
+Ejecutá el wizard desde la raíz del repo:
 
 ```bash
-node setup.js
+pnpm setup
 ```
 
-O creá un archivo `.env` en esta carpeta con:
+O creá un archivo `.env` en esta carpeta (`apps/bot/.env`) con:
 
 ```env
+# Server al que le hablan los bots (cerebro unificado)
+LOBSTER_SERVER_URL=http://127.0.0.1:3000
+
 # Al menos uno de estos tokens es necesario
 TELEGRAM_TOKEN=tu_token_aqui
 DISCORD_TOKEN=tu_token_aqui
@@ -29,21 +32,15 @@ WHATSAPP_ENABLED=true
 SLACK_TOKEN=tu_token_aqui
 SLACK_APP_TOKEN=tu_app_token_aqui  # Solo para Slack (Socket Mode)
 
-# Configuración de Ollama (opcional, estos son los valores por defecto)
-OLLAMA_URL=http://127.0.0.1:11434/api/generate
-MODEL=tinyllama
+# Opcional: omite el rate limit del server (misma clave que el server)
+INTERNAL_API_KEY=
 ```
 
 ## Ejecución
 
 ```bash
-node index.js
+pnpm dev:bot    # desde la raíz del repo
 ```
-
-## Requisitos
-
-- [Ollama](https://ollama.ai) corriendo localmente con algún modelo instalado (`ollama pull tinyllama`)
-- Node.js 18+
 
 ## Plataformas soportadas
 
@@ -52,4 +49,10 @@ node index.js
 | Telegram | `TELEGRAM_TOKEN` | ✅ Listo |
 | Discord | `DISCORD_TOKEN` | ✅ Listo |
 | WhatsApp | `WHATSAPP_ENABLED=true` | ✅ Listo (escanear QR) |
-| Slack | `SLACK_TOKEN` + `SLACK_APP_TOKEN` | ✅ Listo (requiere `pnpm add @slack/bolt`) |
+| Slack | `SLACK_TOKEN` + `SLACK_APP_TOKEN` | ✅ Listo (opcional `@slack/bolt`) |
+
+## Memoria
+
+Cada chat conserva su conversación: el server deriva la sesión
+`platform:chatId` (p. ej. `discord:123456`) y guarda el historial en SQLite.
+Última actualización: 2026-10-24

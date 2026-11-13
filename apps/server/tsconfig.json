@@ -15,10 +15,6 @@
     "declarationMap": false,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@lobster/shared": ["../../packages/shared/src"],
-      "@lobster/shared/*": ["../../packages/shared/src/*"]
-    }
+    "baseUrl": "."
   }
 }

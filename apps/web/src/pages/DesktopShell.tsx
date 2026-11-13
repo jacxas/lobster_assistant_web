@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
+import AssistantChat from "@/components/chat/AssistantChat";
 import { Activity, Bot, ChevronRight, FolderOpen, Gauge, LayoutDashboard, MessageSquare, Moon, MoreHorizontal, Network, Search, Settings, Terminal, Wifi, Zap } from "lucide-react";
-import AssistantChat from "@/components/AssistantChat";
 
 type AppId = "home" | "assistant" | "models" | "channels" | "files" | "system" | "setup" | "settings";
 
@@ -101,8 +101,6 @@ function Overview({ open }: { open: (id: AppId) => void }) {
 }
 
 function AppPanel({ id }: { id: AppId }) {
-  if (id === "assistant") return <AssistantChat />;
-
   const configs: Record<AppId, { icon: typeof Bot; heading: string; description: string; items: string[] }> = {
     assistant: { icon: MessageSquare, heading: "Private conversations", description: "Your local assistant workspace. Connect the real runtime here next.", items: ["New conversation", "Recent conversations", "Context & memory", "Runtime status"] },
     models: { icon: Bot, heading: "Local models", description: "Models discovered from the local AI runtime.", items: ["llama3.2:1b · ready", "tinyllama · available", "mistral · available", "Add model"] },
@@ -163,7 +161,7 @@ export default function DesktopShell() {
         <main className="min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_70%_10%,rgba(249,115,22,.07),transparent_30%),linear-gradient(180deg,#0d0d10_0%,#09090b_100%)]">
           <div className="mx-auto max-w-[1400px] p-5 md:p-7">
             <div className="mb-6 flex items-center gap-3"><div className="rounded-lg border border-white/8 bg-white/5 p-2 text-orange-300"><ActiveIcon className="h-4 w-4" /></div><div><p className="text-[10px] uppercase tracking-[.2em] text-white/25">Lobster Workspace</p><h1 className="text-lg font-semibold text-white">{apps[active].title}</h1></div></div>
-            {active === "home" ? <Overview open={open} /> : <AppPanel id={active} />}
+            {active === "home" ? <Overview open={open} /> : active === "assistant" ? <AssistantChat /> : <AppPanel id={active} />}
           </div>
         </main>
       </div>

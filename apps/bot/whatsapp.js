@@ -36,7 +36,7 @@ async function connectToWhatsApp() {
 
         if (text) {
             console.log(`Mensaje recibido en WhatsApp: ${text}`);
-            const response = await getLobsterResponse(text);
+            const response = await getLobsterResponse(text, { platform: 'whatsapp', chatId: remoteJid });
             await sock.sendMessage(remoteJid, { text: response });
         }
     });

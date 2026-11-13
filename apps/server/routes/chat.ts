@@ -1,9 +1,11 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
+import { SYSTEM_PROMPT as LOBSTER_PERSONA } from "@lobster/shared";
 import { sessionMiddleware } from "../middleware/session.js";
 import { chatLimiter } from "../middleware/rateLimit.js";
 import { streamChat, chat, ChatMessage } from "../services/ollama.js";
 import { saveMessage, getHistory, clearHistory } from "../db/messages.js";
+import { upsertSession } from "../db/sessions.js";
 
 export const chatRouter: Router = Router();
 chatRouter.use(sessionMiddleware);
@@ -13,15 +15,16 @@ const ChatBodySchema = z.object({
   message: z.string().min(1).max(8000),
   model: z.string().optional(),
   stream: z.boolean().optional().default(true),
-  platform: z.enum(["discord", "telegram", "whatsapp", "web"]).optional().default("web"),
+  platform: z.enum(["discord", "telegram", "whatsapp", "slack", "web"]).optional().default("web"),
+  // Bots: id de chat de la plataforma -> sesión persistente "platform:chatId"
+  chatId: z.string().min(1).max(200).optional(),
   history: z.array(z.object({
     role: z.enum(["user", "assistant", "system"]),
     content: z.string(),
   })).optional(),
 });
 
-const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT ||
-  "You are Lobster, a helpful AI assistant. Be concise and friendly.";
+const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT || LOBSTER_PERSONA;
 
 /** POST /api/chat */
 chatRouter.post("/", async (req: Request, res: Response) => {
@@ -31,10 +34,16 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     return;
   }
 
-  const { message, model, stream, platform, history: clientHistory } = parsed.data;
-  const sessionId = req.sessionId;
+  const { message, model, stream, platform, chatId, history: clientHistory } = parsed.data;
 
-  const dbHistory = platform === "web" ? getHistory(sessionId, 20) : [];
+  // Web: sesión por cookie. Bots: sesión derivada "platform:chatId".
+  let sessionId = req.sessionId;
+  if (platform !== "web" && chatId) {
+    sessionId = `${platform}:${chatId}`;
+    upsertSession(sessionId, { platform });
+  }
+
+  const dbHistory = clientHistory ? [] : getHistory(sessionId, 20);
   const history = clientHistory ?? dbHistory;
 
   const messages: ChatMessage[] = [
@@ -44,12 +53,14 @@ chatRouter.post("/", async (req: Request, res: Response) => {
   ];
 
   if (!stream || platform !== "web") {
+    const abort = new AbortController();
+    res.on("close", () => {
+      if (!res.writableEnded) abort.abort();
+    });
     try {
-      const reply = await chat(messages, model);
-      if (platform === "web") {
-        saveMessage(sessionId, "user", message, model);
-        saveMessage(sessionId, "assistant", reply, model);
-      }
+      const reply = await chat(messages, model, abort.signal);
+      saveMessage(sessionId, "user", message, model);
+      saveMessage(sessionId, "assistant", reply, model);
       res.json({ reply, platform });
     } catch (err) {
       console.error("[chat] error:", err);
@@ -63,8 +74,20 @@ chatRouter.post("/", async (req: Request, res: Response) => {
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
-  const sendEvent = (event: string, data: unknown) =>
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  // Abort the Ollama generation when the client disconnects (e.g. Stop button)
+  const abort = new AbortController();
+  res.on("close", () => {
+    if (!res.writableEnded) abort.abort();
+  });
+
+  const sendEvent = (event: string, data: unknown) => {
+    if (res.destroyed) return;
+    try {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    } catch {
+      // connection already gone
+    }
+  };
 
   let fullReply = "";
 
@@ -84,7 +107,8 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     (err) => {
       sendEvent("error", { message: err.message });
       res.end();
-    }
+    },
+    abort.signal
   );
 });
 
