@@ -96,12 +96,36 @@ export async function streamChat(
   }
 }
 
-/** Non-streaming chat (used by bots): streams internally to avoid undici's ~300s timeout on slow machines */
+/** Non-streaming chat (used by bots): uses OpenRouter when OPENROUTER_API_KEY is set, otherwise Ollama streamed internally to avoid undici's ~300s timeout on slow machines */
 export async function chat(
   messages: ChatMessage[],
   model = DEFAULT_MODEL,
   signal?: AbortSignal
 ): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (apiKey) {
+    const numPredict = resolveNumPredict();
+    const cloudRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:5173",
+        "X-Title": "Lobster Bot",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free",
+        messages,
+        temperature: 0.6,
+        ...(Number.isInteger(numPredict) && numPredict > 0 ? { max_tokens: numPredict } : {}),
+      }),
+      signal,
+    });
+    if (!cloudRes.ok) throw new Error(`OpenRouter error: ${cloudRes.status} ${cloudRes.statusText}`);
+    const cloudData = (await cloudRes.json()) as { choices?: { message?: { content?: string } }[] };
+    return cloudData.choices?.[0]?.message?.content ?? "";
+  }
+
   const payload: Record<string, unknown> = { model, messages, stream: true };
   const numPredict = resolveNumPredict();
   if (Number.isInteger(numPredict) && numPredict > 0) {
