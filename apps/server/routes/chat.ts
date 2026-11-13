@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { SYSTEM_PROMPT as LOBSTER_PERSONA } from "@lobster/shared";
+import { CRAB_PROMPT, isCrab, setCrab } from "../services/persona.js";
 import { sessionMiddleware } from "../middleware/session.js";
 import { chatLimiter } from "../middleware/rateLimit.js";
 import { streamChat, chat, ChatMessage } from "../services/ollama.js";
@@ -43,11 +44,35 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     upsertSession(sessionId, { platform });
   }
 
+  // Comandos de personalidad: /cangrejo activa el dialecto crustáceo, /normal lo apaga.
+  // Responden al instante, sin llamar al modelo.
+  const command = message.trim().toLowerCase();
+  if (command === "/cangrejo" || command === "/normal") {
+    const activate = command === "/cangrejo";
+    setCrab(sessionId, activate);
+    const reply = activate
+      ? "🦀 Modo cangrejo ACTIVADO. Click-click. (Escribe /normal para volver al lenguaje langosta.)"
+      : "🦞 Modo cangrejo desactivado. Volvemos al español de siempre.";
+    if (!stream || platform !== "web") {
+      res.json({ reply, platform });
+      return;
+    }
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+    res.write(`event: chunk\ndata: ${JSON.stringify({ text: reply })}\n\n`);
+    res.write(`event: done\ndata: {}\n\n`);
+    res.end();
+    return;
+  }
+
   const dbHistory = clientHistory ? [] : getHistory(sessionId, 20);
   const history = clientHistory ?? dbHistory;
 
+  const systemPrompt = isCrab(sessionId) ? `${SYSTEM_PROMPT}\n\n${CRAB_PROMPT}` : SYSTEM_PROMPT;
   const messages: ChatMessage[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt },
     ...history,
     { role: "user", content: message },
   ];

@@ -43,6 +43,23 @@ describe("api", () => {
     expect([200, 502]).toContain(res.status);
   });
 
+  it("POST /api/chat /cangrejo activa el modo y /normal lo desactiva", async () => {
+    const send = async (message: string) => {
+      const res = await fetch(`${base}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, platform: "telegram", chatId: "test-crab", stream: false }),
+      });
+      return { status: res.status, body: await res.json() };
+    };
+    const on = await send("/cangrejo");
+    expect(on.status).toBe(200);
+    expect(on.body.reply).toContain("ACTIVADO");
+    const off = await send("/normal");
+    expect(off.status).toBe(200);
+    expect(off.body.reply).toContain("desactivado");
+  });
+
   it("DELETE /api/chat/history responde ok", async () => {
     const res = await fetch(`${base}/api/chat/history`, { method: "DELETE" });
     expect(res.status).toBe(200);
