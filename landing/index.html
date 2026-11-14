@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lobster — El asistente que vive en tu PC</title>
+<meta name="description" content="Asistente de IA local con manos y ojos: chat, agente con herramientas, visión de pantalla y bot de Telegram. Privado, BYOK y corre en hardware modesto.">
+<meta property="og:title" content="Lobster — El asistente que vive en tu PC">
+<meta property="og:description" content="Chat, agente con 10 herramientas, visión de pantalla y bot de Telegram. Privado por diseño. Corre hasta en una PC de 2011.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦞</text></svg>">
+<style>
+  :root{
+    --bg:#0a0a0d; --panel:rgba(255,255,255,.02); --line:rgba(255,255,255,.07);
+    --text:#f4f4f5; --mut:rgba(255,255,255,.45); --mut2:rgba(255,255,255,.32);
+    --orange:#f97316; --orange2:#fb923c; --emerald:#34d399; --amber:#fbbf24;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+  header{position:sticky;top:0;z-index:40;background:rgba(10,10,13,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:56px}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
+  .badge-ea{font-size:10px;font-weight:500;color:#fed7aa;border:1px solid rgba(251,146,60,.3);background:rgba(251,146,60,.1);border-radius:99px;padding:2px 8px}
+  .nav nav{display:none;gap:24px;font-size:14px;color:var(--mut)}
+  .nav nav a:hover{color:#fff}
+  @media(min-width:820px){.nav nav{display:flex}}
+  .btn{display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:10px 16px;font-size:14px;font-weight:600;border:1px solid transparent;cursor:pointer;transition:.15s}
+  .btn-primary{background:var(--orange);color:#fff}
+  .btn-primary:hover{background:var(--orange2)}
+  .btn-ghost{border-color:var(--line);color:rgba(255,255,255,.85)}
+  .btn-ghost:hover{background:rgba(255,255,255,.05)}
+  .btn-sm{padding:7px 12px;font-size:13px}
+  .hero{display:grid;gap:40px;padding:56px 0 24px}
+  @media(min-width:960px){.hero{grid-template-columns:1.05fr .95fr;align-items:center;padding:72px 0 32px}}
+  .pill{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#a7f3d0;border:1px solid rgba(52,211,153,.25);background:rgba(52,211,153,.06);border-radius:99px;padding:5px 12px}
+  .dot{width:6px;height:6px;border-radius:99px;background:var(--emerald);box-shadow:0 0 10px rgba(52,211,153,.9)}
+  h1{font-size:clamp(32px,5vw,52px);line-height:1.07;letter-spacing:-.02em;margin:20px 0 0;font-weight:650;text-wrap:balance}
+  .grad{background:linear-gradient(90deg,#fdba74,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{margin:20px 0 0;max-width:560px;color:var(--mut);font-size:clamp(15px,1.6vw,18px)}
+  .ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+  .note{margin-top:14px;font-size:12px;color:var(--mut2)}
+  .term{border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#0b0d12;overflow:hidden;box-shadow:0 30px 80px rgba(249,115,22,.06)}
+  .term-head{display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06);padding:10px 16px;font-size:12px;color:var(--mut)}
+  .tag-m{font-family:var(--mono);font-size:10px;font-weight:700;color:#6ee7b7;background:rgba(52,211,153,.1);border-radius:4px;padding:2px 6px}
+  .term pre{margin:0;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.7;color:rgba(255,255,255,.72);white-space:pre-wrap;overflow-x:auto}
+  .term-foot{border-top:1px solid rgba(255,255,255,.06);padding:10px 16px;font-size:11px;color:var(--mut2)}
+  .term-foot b{color:rgba(255,255,255,.6);font-weight:500}
+  section{padding:56px 0}
+  .kicker{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(251,146,60,.8);margin:0}
+  h2{font-size:clamp(22px,3vw,30px);letter-spacing:-.02em;margin:8px 0 0;font-weight:640}
+  .sub{margin:12px 0 0;max-width:640px;color:var(--mut);font-size:14px}
+  .grid3{display:grid;gap:16px;margin-top:28px}
+  @media(min-width:760px){.grid3{grid-template-columns:repeat(3,1fr)}}
+  .grid2{display:grid;gap:16px;margin-top:28px}
+  @media(min-width:760px){.grid2{grid-template-columns:1fr 1fr}}
+  .card{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:20px}
+  .card h3{margin:12px 0 0;font-size:14px;font-weight:600}
+  .card p{margin:8px 0 0;font-size:13.5px;color:var(--mut)}
+  .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:rgba(251,146,60,.1);color:#fdba74;font-size:18px;flex:none}
+  .row{display:flex;gap:16px;align-items:flex-start}
+  .num{font-family:var(--mono);font-size:12px;color:var(--mut2)}
+  .gridp{display:grid;gap:16px;margin-top:28px}
+  @media(min-width:900px){.gridp{grid-template-columns:repeat(3,1fr)}}
+  .plan{position:relative;border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:24px}
+  .plan.hi{border-color:rgba(251,146,60,.4);background:linear-gradient(180deg,rgba(249,115,22,.09),transparent);box-shadow:0 30px 80px rgba(249,115,22,.06)}
+  .pop{position:absolute;top:-11px;left:24px;background:var(--orange);color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:99px;padding:2px 12px}
+  .plan-top{display:flex;justify-content:space-between;align-items:center}
+  .plan-top h3{margin:0;font-size:14px}
+  .tagp{font-size:10px;color:var(--mut);border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:99px;padding:2px 10px}
+  .price{margin:16px 0 0;font-size:30px;font-weight:650;letter-spacing:-.02em}
+  .price span{font-size:14px;color:var(--mut2);font-weight:400}
+  .plan .desc{margin:4px 0 0;font-size:12px;color:var(--mut2)}
+  .plan ul{list-style:none;margin:18px 0 0;padding:0}
+  .plan li{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;color:rgba(255,255,255,.62);margin:10px 0}
+  .chk{color:var(--emerald);font-weight:700}
+  .plan .btn{width:100%;justify-content:center;margin-top:22px}
+  .fine{margin:18px auto 0;max-width:640px;text-align:center;font-size:12px;color:var(--mut2)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .chip{border:1px solid var(--line);background:rgba(255,255,255,.05);color:rgba(255,255,255,.6);border-radius:99px;padding:4px 12px;font-size:12px}
+  details{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:16px 20px}
+  details+details{margin-top:12px}
+  summary{cursor:pointer;font-size:14px;font-weight:500;color:rgba(255,255,255,.85);list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";float:right;color:var(--mut2)}
+  details[open] summary::after{content:"–"}
+  details p{margin:12px 0 0;font-size:13.5px;color:var(--mut)}
+  .cta{position:relative;overflow:hidden;border:1px solid rgba(251,146,60,.28);border-radius:20px;padding:48px 24px;text-align:center;background:linear-gradient(135deg,rgba(249,115,22,.14),rgba(255,255,255,.03),transparent)}
+  .cta h2{margin:0}
+  .cta p{margin:12px auto 0;max-width:520px;color:var(--mut);font-size:14px}
+  .cta .ctas{justify-content:center}
+  footer{border-top:1px solid var(--line);padding:28px 0;font-size:12px;color:var(--mut2)}
+  .foot{display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:space-between}
+  @media(min-width:760px){.foot{flex-direction:row}}
+  .sec{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:28px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#top">🦞 Lobster <span class="badge-ea">early access</span></a>
+    <nav>
+      <a href="#producto">Producto</a>
+      <a href="#como">Cómo funciona</a>
+      <a href="#precios">Precios</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-primary btn-sm" href="https://t.me/Jacxasbot" target="_blank" rel="noreferrer">Probar el bot</a>
+  </div>
+</header>
+
+<main id="top" class="wrap">
+  <div class="hero">
+    <div>
+      <span class="pill"><span class="dot"></span> Acceso anticipado · corre en tu propia PC</span>
+      <h1>El asistente que vive en tu PC.<br><span class="grad">Con manos y ojos.</span></h1>
+      <p class="lead">Lee tus carpetas, ejecuta comandos permitidos, abre webs y mira tu pantalla — desde el chat, el panel o Telegram. Vos elegís el cerebro: local y privado, o una API con tu propia clave.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="https://t.me/Jacxasbot" target="_blank" rel="noreferrer">Probar ahora →</a>
+        <a class="btn btn-ghost" href="https://github.com/jacxas/lobster_assistant_web" target="_blank" rel="noreferrer">Ver en GitHub</a>
+      </div>
+      <p class="note">Sin tarjeta · BYOK · Windows hoy, Linux después.</p>
+    </div>
+
+    <div class="term">
+      <div class="term-head"><span class="tag-m">AGENTE</span> sesión real · 8 s
+        <span style="margin-left:auto;display:flex;gap:6px">
+          <span style="width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.12)"></span>
+          <span style="width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.12)"></span>
+          <span style="width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.12)"></span>
+        </span>
+      </div>
+<pre>&gt; "lista mi carpeta Descargas y decime cuántos archivos hay"
+
+🔧 list_files {"path":"C:/Users/vos/Downloads"}
+↳ 64 entradas (61 archivos + 3 carpetas)…
+
+✅ "Hay 61 archivos y 3 carpetas. Ejemplos:
+   061025TPG.rar, 360TS_Setup.exe, 2ZOEAAQG…avif"</pre>
+      <div class="term-foot">Cerebro: <b>Nemotron 3 Ultra (cloud, gratis)</b> · Manos: <b>tu PC</b> · Clics: <b style="color:#fbbf24">vista previa</b></div>
+    </div>
+  </div>
+
+  <section aria-label="Garantías">
+    <div class="grid3">
+      <div class="card"><div class="ic">🔒</div><h3>Privacidad por diseño</h3><p>Todo corre en tu equipo. Solo el texto que escribís —o la captura, si usás visión— viaja al cerebro que vos elijas.</p></div>
+      <div class="card"><div class="ic">🛡️</div><h3>Permisos con frenos</h3><p>12 comandos en allowlist, clics en vista previa por defecto y aborto real cuando cortás la generación.</p></div>
+      <div class="card"><div class="ic">📊</div><h3>Corre en hardware modesto</h3><p>Probado en una PC de 2011 con 3.5 GB de RAM. El cerebro pesado puede vivir en la nube; las manos, en tu máquina.</p></div>
+    </div>
+  </section>
+
+  <section id="producto">
+    <p class="kicker">Producto</p>
+    <h2>Un cerebro, muchas manos</h2>
+    <p class="sub">Chat, agente, visión y bot comparten la misma memoria y las mismas herramientas — con permisos pensados para no romper nada.</p>
+    <div class="grid2">
+      <div class="card row"><div class="ic">💬</div><div><h3 style="margin-top:0">Chat con memoria</h3><p>Conversaciones guardadas en SQLite, por sesión y por canal. Streaming token a token con botón Detener.</p></div></div>
+      <div class="card row"><div class="ic">🧠</div><div><h3 style="margin-top:0">Agente con 10 herramientas</h3><p>Archivos, comandos permitidos, URLs, estado del sistema, captura de pantalla y clics. Ciclo percibir → actuar → verificar.</p></div></div>
+      <div class="card row"><div class="ic">👁️</div><div><h3 style="margin-top:0">Visión de pantalla</h3><p>Mira tu escritorio y responde qué hay, dónde está un botón o qué error apareció. Sin GPU.</p></div></div>
+      <div class="card row"><div class="ic">🤖</div><div><h3 style="margin-top:0">Bot en tu mensajería</h3><p>Telegram hoy; WhatsApp, Discord y Slack con la misma sesión y memoria. Modo cangrejo incluido. 🦀</p></div></div>
+    </div>
+  </section>
+
+  <section id="como">
+    <p class="kicker">Cómo funciona</p>
+    <h2>Tres pasos y estás conversando</h2>
+    <div class="grid3">
+      <div class="card"><div class="row" style="align-items:center"><div class="ic">⚡</div><span class="num">01</span></div><h3>Instalás Lobster</h3><p>Un instalador liviano trae el runtime, el panel y el bot. Doble clic y arranca.</p></div>
+      <div class="card"><div class="row" style="align-items:center"><div class="ic">🖥️</div><span class="num">02</span></div><h3>Elegís el cerebro</h3><p>Local con Ollama (privado, gratis) o una API compatible con OpenAI usando tu propia clave (BYOK).</p></div></div>
+      <div class="card"><div class="row" style="align-items:center"><div class="ic">☁️</div><span class="num">03</span></div><h3>Usás desde donde estés</h3><p>Panel web, Telegram o la API. Las mismas herramientas y la misma memoria en todos lados.</p></div></div>
+    </div>
+  </section>
+
+  <section id="precios">
+    <p class="kicker">Precios</p>
+    <h2>Barato porque el cómputo es tuyo</h2>
+    <p class="sub">El costo marginal de cada usuario es cero: la IA corre en tu equipo. Los planes solo agregan cerebro en la nube, cuotas y comodidades.</p>
+    <div class="gridp">
+      <div class="plan">
+        <div class="plan-top"><h3>Eco</h3><span class="tagp">BYOK</span></div>
+        <p class="price">Gratis</p>
+        <p class="desc">Para PCs viejas y curiosos.</p>
+        <ul>
+          <li><span class="chk">✓</span> Chat + agente con 10 herramientas</li>
+          <li><span class="chk">✓</span> Cerebro local (1–3B) o tu key gratis</li>
+          <li><span class="chk">✓</span> Visión incluida (tu proveedor)</li>
+          <li><span class="chk">✓</span> Bot de Telegram</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://t.me/Jacxasbot" target="_blank" rel="noreferrer">Empezar gratis</a>
+      </div>
+      <div class="plan hi">
+        <span class="pop">Popular</span>
+        <div class="plan-top"><h3>Estándar</h3></div>
+        <p class="price">u$s 9<span>/mes</span></p>
+        <p class="desc">Para uso diario sin fricción.</p>
+        <ul>
+          <li><span class="chk">✓</span> Todo lo de Eco</li>
+          <li><span class="chk">✓</span> Cerebro 7–8B incluido (sin API key)</li>
+          <li><span class="chk">✓</span> Cuota de visión mensual</li>
+          <li><span class="chk">✓</span> Sandbox + historial ilimitado</li>
+          <li><span class="chk">✓</span> Soporte prioritario</li>
+        </ul>
+        <a class="btn btn-primary" href="https://t.me/Jacxasbot" target="_blank" rel="noreferrer">Probar 14 días</a>
+      </div>
+      <div class="plan">
+        <div class="plan-top"><h3>Pro</h3><span class="tagp">Equipos</span></div>
+        <p class="price">u$s 29<span>/mes</span></p>
+        <p class="desc">Automatización de escritorio de verdad.</p>
+        <ul>
+          <li><span class="chk">✓</span> Todo lo de Estándar</li>
+          <li><span class="chk">✓</span> Visión y clics con confirmación</li>
+          <li><span class="chk">✓</span> Multi-PC y perfiles de hardware</li>
+          <li><span class="chk">✓</span> API local + MCP para tus propias tools</li>
+          <li><span class="chk">✓</span> Instalador white-label</li>
+        </ul>
+        <a class="btn btn-ghost" href="https://t.me/Jacxasbot" target="_blank" rel="noreferrer">Hablar con ventas</a>
+      </div>
+    </div>
+    <p class="fine">Precios de lanzamiento con IVA aparte. Los planes con nube incluyen una cuota mensual; el excedente se cobra por uso o se cubre con tu propia clave.</p>
+  </section>
+
+  <section aria-label="Privacidad">
+    <div class="sec">
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:24px">
+        <div style="max-width:520px">
+          <p class="kicker" style="color:rgba(110,231,183,.8)">Privacidad</p>
+          <h2 style="font-size:20px">Transparente hasta el detalle incómodo</h2>
+          <p class="sub" style="margin-top:10px">El panel muestra qué está habilitado en todo momento: si los clics son reales o vista previa, qué modelo de visión está configurado y qué comandos están permitidos. Sin letra chica.</p>
+        </div>
+        <div class="chips">
+          <span class="chip">Ollama local</span><span class="chip">OpenRouter BYOK</span><span class="chip">SQLite en tu disco</span><span class="chip">Sin telemetría</span><span class="chip">MCP-ready</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <p class="kicker">FAQ</p>
+    <h2>Preguntas frecuentes</h2>
+    <div style="margin-top:24px">
+      <details open><summary>¿Se sube algo a la nube?</summary><p>Solo lo que decidas. Con cerebro local, nada sale de tu PC. Con cerebro en la nube van el texto del chat y, si usás visión, la captura de pantalla.</p></details>
+      <details><summary>¿Funciona sin internet?</summary><p>El chat y las herramientas locales sí. El agente con nube y el bot necesitan conexión.</p></details>
+      <details><summary>¿Qué hardware necesito?</summary><p>Menos del que imaginás: se probó en una AMD E-350 de 2011 con 3.5 GB de RAM. En equipos modernos vuela.</p></details>
+      <details><summary>¿Puede tocar mi PC sin permiso?</summary><p>No. Los comandos van por allowlist y los clics están en vista previa hasta que los habilites explícitamente.</p></details>
+      <details><summary>¿Puedo usar mi propia API key?</summary><p>Sí, BYOK de punta a punta: OpenRouter, OpenAI o cualquier endpoint compatible. La clave queda en tu equipo.</p></details>
+    </div>
+  </section>
+
+  <section>
+    <div class="cta">
+      <h2>Tu próxima tarea se hace sola. 🦞</h2>
+      <p>Probalo en tu propia máquina en menos de un minuto. Si te gusta, el plan Eco es gratis para siempre.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="https://t.me/Jacxasbot" target="_blank" rel="noreferrer">Abrir el bot ✨</a>
+        <a class="btn btn-ghost" href="https://github.com/jacxas/lobster_assistant_web" target="_blank" rel="noreferrer">Ver el código</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <p>🦞 Lobster · asistente local con manos y ojos · hecho en LATAM</p>
+    <p>© 2026 · early access · precios de lanzamiento</p>
+  </div>
+</footer>
+
+</body>
+</html>
