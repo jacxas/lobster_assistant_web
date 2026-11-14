@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Sandbox Lobster</title>
+<style>
+  body{margin:0;background:#0b0b0f;color:#fff;font-family:system-ui,"Segoe UI",Arial;display:flex;justify-content:center;padding:40px}
+  .wrap{width:920px}
+  h1{font-size:30px;margin:0 0 6px}
+  p.sub{color:#9aa4b2;margin:0 0 28px;font-size:16px}
+  .row{display:flex;gap:24px;margin-bottom:26px}
+  button{border:0;border-radius:16px;padding:38px 0;font-size:28px;font-weight:800;letter-spacing:.5px;color:#fff;cursor:pointer;flex:1;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  #rojo{background:#e23b3b}
+  #verde{background:#1fa65a}
+  #azul{background:#2f6fe4}
+  label{font-size:18px;color:#8ab}
+  input{margin-top:8px;width:100%;box-sizing:border-box;padding:18px;font-size:22px;border-radius:12px;border:2px solid #333;background:#16161c;color:#fff}
+  .panel{margin-top:26px;background:#15151b;border:2px solid #2a2a33;border-radius:16px;padding:22px;min-height:120px}
+  .panel h2{margin:0 0 10px;font-size:16px;color:#8ab;letter-spacing:1px}
+  #log{font-size:20px;line-height:1.6;white-space:pre-wrap}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🦞 ZONA DE PRUEBA — Lobster</h1>
+    <p class="sub">Nada de aquí toca tu sistema: los clics y el texto solo escriben en el registro de abajo.</p>
+    <div class="row">
+      <button id="rojo">BOTÓN ROJO</button>
+      <button id="verde">BOTÓN VERDE</button>
+      <button id="azul">BOTÓN AZUL</button>
+    </div>
+    <label for="campo">Campo de texto</label><br>
+    <input id="campo" placeholder="escribe aquí...">
+    <div class="panel"><h2>REGISTRO</h2><div id="log">— sin acciones todavía —</div></div>
+  </div>
+<script>
+  const log = document.getElementById('log');
+  let n = 0;
+  function reg(t) {
+    n++;
+    log.textContent = '#' + n + ' ' + new Date().toLocaleTimeString() + ' — ' + t;
+  }
+  ['rojo', 'verde', 'azul'].forEach(function (id) {
+    document.getElementById(id).addEventListener('click', function () {
+      reg('PULSADO: BOTÓN ' + id.toUpperCase());
+    });
+  });
+  document.getElementById('campo').addEventListener('input', function (e) {
+    reg('ESCRITO: "' + e.target.value + '"');
+  });
+</script>
+</body>
+</html>

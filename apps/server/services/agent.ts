@@ -248,8 +248,11 @@ export const TOOLS: Record<string, Tool> = {
     args: '{"question":"¿Dónde está el botón Guardar? Responde x,y"}',
     async run(args) {
       if (typeof args.question !== "string" || !args.question.trim()) throw new Error("falta el argumento question");
-      await captureScreen();
-      const answer = await askVision(args.question.trim());
+      const size = await captureScreen();
+      const contextual =
+        `${args.question.trim()}\n\n(La imagen mide exactamente ${size} píxeles. ` +
+        'Si te piden coordenadas, responde SOLO un JSON válido {"x":<numero>,"y":<numero>} en esa resolución.)';
+      const answer = await askVision(contextual);
       return truncate(answer, 1200);
     },
   },

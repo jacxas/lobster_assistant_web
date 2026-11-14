@@ -37,6 +37,11 @@ export function buildApp(): Express {
   app.use("/api/agent", agentRouter);
   app.use("/api/status", statusRouter);
 
+  // Zona de pruebas para vision/clic (estatica, no toca el sistema)
+  app.get("/sandbox", (_req, res) => {
+    res.type("html").sendFile(path.resolve(__dirname, "sandbox.html"));
+  });
+
   const staticPath =
     process.env.NODE_ENV === "production"
       ? path.resolve(__dirname, "public")
