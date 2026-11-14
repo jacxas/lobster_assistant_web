@@ -59,6 +59,7 @@ const runPowerShellFree = (command: string): Promise<string> =>
   });
 
 const SCREENSHOT_PATH = path.join(os.tmpdir(), "lobster-screenshot.png").replace(/\\/g, "/");
+const GRID_SCREENSHOT_PATH = path.join(os.tmpdir(), "lobster-screenshot-grid.png").replace(/\\/g, "/");
 
 /** Captura la pantalla completa a un PNG y devuelve "ANCHOxALTO". */
 function captureScreen(): Promise<string> {
@@ -81,11 +82,33 @@ function captureScreen(): Promise<string> {
   });
 }
 
+/** Superpone una rejilla con etiquetas de coordenadas a la última captura (set-of-marks básico). */
+function overlayGrid(): Promise<void> {
+  const script = [
+    "Add-Type -AssemblyName System.Drawing",
+    `$bmp=[System.Drawing.Image]::FromFile('${SCREENSHOT_PATH}')`,
+    "$g=[System.Drawing.Graphics]::FromImage($bmp)",
+    "$pen=New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(90,255,60,60),1)",
+    "$font=New-Object System.Drawing.Font('Arial',9,[System.Drawing.FontStyle]::Bold)",
+    "$brush=[System.Drawing.Brushes]::Yellow",
+    "$bg=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(170,0,0,0))",
+    "for($x=0;$x -lt $bmp.Width;$x+=100){$g.DrawLine($pen,$x,0,$x,$bmp.Height);if($x % 200 -eq 0){$g.FillRectangle($bg,$x+1,1,28,12);$g.DrawString($x,$font,$brush,$x+2,0)}}",
+    "for($y=0;$y -lt $bmp.Height;$y+=100){$g.DrawLine($pen,0,$y,$bmp.Width,$y);if($y % 200 -eq 0){$g.FillRectangle($bg,1,$y+1,28,12);$g.DrawString($y,$font,$brush,2,$y+1)}}",
+    `$bmp.Save('${GRID_SCREENSHOT_PATH}',[System.Drawing.Imaging.ImageFormat]::Png)`,
+    "$g.Dispose();$bmp.Dispose()",
+  ].join("; ");
+  return new Promise((resolve, reject) => {
+    execFile("powershell.exe", ["-NoProfile", "-Command", script], { timeout: 25_000, windowsHide: true }, (error) =>
+      error ? reject(error) : resolve()
+    );
+  });
+}
+
 /** Pregunta a un modelo de visión (OpenRouter) sobre la última captura. */
-async function askVision(question: string, signal?: AbortSignal): Promise<string> {
+async function askVision(question: string, imagePath: string = SCREENSHOT_PATH, signal?: AbortSignal): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("la visión necesita OPENROUTER_API_KEY (no hay VLM local viable en esta PC)");
-  const base64 = (await readFile(SCREENSHOT_PATH)).toString("base64");
+  const base64 = (await readFile(imagePath)).toString("base64");
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -244,15 +267,21 @@ export const TOOLS: Record<string, Tool> = {
   },
 
   look: {
-    description: "Mira la pantalla con un modelo de visión y responde una pregunta sobre lo que se ve (p. ej. coordenadas de un botón). Envía la captura a OpenRouter.",
+    description: "Mira la pantalla con un modelo de visión y responde una pregunta sobre lo que se ve (p. ej. coordenadas de un botón). Envía la captura a OpenRouter. Acepta {question, grid?:true} para superponer rejilla de coordenadas.",
     args: '{"question":"¿Dónde está el botón Guardar? Responde x,y"}',
     async run(args) {
       if (typeof args.question !== "string" || !args.question.trim()) throw new Error("falta el argumento question");
       const size = await captureScreen();
-      const contextual =
-        `${args.question.trim()}\n\n(La imagen mide exactamente ${size} píxeles. ` +
-        'Si te piden coordenadas, responde SOLO un JSON válido {"x":<numero>,"y":<numero>} en esa resolución.)';
-      const answer = await askVision(contextual);
+      const useGrid = args.grid === true;
+      if (useGrid) await overlayGrid();
+      const contextual = useGrid
+        ? `${args.question.trim()}\n\n(La imagen mide exactamente ${size} píxeles y tiene una rejilla superpuesta: ` +
+          "líneas cada 100 px y etiquetas de coordenadas en amarillo cada 200 px. " +
+          "Si te piden la posición de un elemento, delimítalo usando la rejilla y responde SOLO un JSON válido " +
+          '{"x":<centro_x>,"y":<centro_y>,"x1":<izq>,"y1":<arriba>,"x2":<der>,"y2":<abajo>} en esa resolución.)'
+        : `${args.question.trim()}\n\n(La imagen mide exactamente ${size} píxeles. ` +
+          'Si te piden coordenadas, responde SOLO un JSON válido {"x":<numero>,"y":<numero>} en esa resolución.)';
+      const answer = await askVision(contextual, useGrid ? GRID_SCREENSHOT_PATH : SCREENSHOT_PATH);
       return truncate(answer, 1200);
     },
   },
