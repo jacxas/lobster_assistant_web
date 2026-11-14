@@ -107,6 +107,48 @@ describe("runAgent", () => {
     expect(answer).toBe("recuperado");
   });
 
+  it("click sin AGENT_ALLOW_CLICKS devuelve vista previa y no clica", async () => {
+    const previo = process.env.AGENT_ALLOW_CLICKS;
+    delete process.env.AGENT_ALLOW_CLICKS;
+    try {
+      await runAgent("prueba", {
+        maxSteps: 3,
+        brain: brainFrom(['{"action":"click","args":{"x":10,"y":20}}', '{"final":"hecho"}']),
+        onEvent: (event) => {
+          if (event.type === "observation") expect(event.result).toContain("VISTA PREVIA");
+        },
+      });
+    } finally {
+      if (previo !== undefined) process.env.AGENT_ALLOW_CLICKS = previo;
+    }
+  });
+
+  it("click rechaza coordenadas invalidas", async () => {
+    await runAgent("prueba", {
+      maxSteps: 3,
+      brain: brainFrom(['{"action":"click","args":{"x":-5,"y":20}}', '{"final":"ok"}']),
+      onEvent: (event) => {
+        if (event.type === "observation") expect(event.result).toContain("coordenadas inválidas");
+      },
+    });
+  });
+
+  it("type_text sin AGENT_ALLOW_CLICKS devuelve vista previa", async () => {
+    const previo = process.env.AGENT_ALLOW_CLICKS;
+    delete process.env.AGENT_ALLOW_CLICKS;
+    try {
+      await runAgent("prueba", {
+        maxSteps: 3,
+        brain: brainFrom(['{"action":"type_text","args":{"text":"hola"}}', '{"final":"ok"}']),
+        onEvent: (event) => {
+          if (event.type === "observation") expect(event.result).toContain("VISTA PREVIA");
+        },
+      });
+    } finally {
+      if (previo !== undefined) process.env.AGENT_ALLOW_CLICKS = previo;
+    }
+  });
+
   it("falla cuando agota los pasos", async () => {
     await expect(
       runAgent("prueba", {

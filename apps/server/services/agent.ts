@@ -58,6 +58,93 @@ const runPowerShellFree = (command: string): Promise<string> =>
     );
   });
 
+const SCREENSHOT_PATH = path.join(os.tmpdir(), "lobster-screenshot.png").replace(/\\/g, "/");
+
+/** Captura la pantalla completa a un PNG y devuelve "ANCHOxALTO". */
+function captureScreen(): Promise<string> {
+  const script = [
+    "Add-Type -AssemblyName System.Windows.Forms",
+    "Add-Type -AssemblyName System.Drawing",
+    "$b=[System.Windows.Forms.SystemInformation]::VirtualScreen",
+    "$bmp=New-Object System.Drawing.Bitmap $b.Width,$b.Height",
+    "$g=[System.Drawing.Graphics]::FromImage($bmp)",
+    "$g.CopyFromScreen($b.Left,$b.Top,0,0,$bmp.Size)",
+    `$bmp.Save('${SCREENSHOT_PATH}',[System.Drawing.Imaging.ImageFormat]::Png)`,
+    "$g.Dispose();$bmp.Dispose()",
+    'Write-Output "$($b.Width)x$($b.Height)"',
+  ].join("; ");
+  return new Promise((resolve, reject) => {
+    execFile("powershell.exe", ["-NoProfile", "-Command", script], { timeout: 20_000, windowsHide: true }, (error, stdout) => {
+      if (error) reject(error);
+      else resolve(String(stdout).trim());
+    });
+  });
+}
+
+/** Pregunta a un modelo de visión (OpenRouter) sobre la última captura. */
+async function askVision(question: string, signal?: AbortSignal): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("la visión necesita OPENROUTER_API_KEY (no hay VLM local viable en esta PC)");
+  const base64 = (await readFile(SCREENSHOT_PATH)).toString("base64");
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "http://localhost:5173",
+      "X-Title": "Lobster Vision",
+    },
+    body: JSON.stringify({
+      model: process.env.AGENT_VISION_MODEL || "nvidia/nemotron-3.5-super-vl:free",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: question },
+            { type: "image_url", image_url: { url: `data:image/png;base64,${base64}` } },
+          ],
+        },
+      ],
+      max_tokens: 800,
+    }),
+    signal,
+  });
+  if (!res.ok) throw new Error(`Vision error: ${res.status} ${res.statusText}`);
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  return data.choices?.[0]?.message?.content ?? "";
+}
+
+/** Clic izquierdo real en coordenadas absolutas (requiere AGENT_ALLOW_CLICKS=1). */
+function clickAt(x: number, y: number): Promise<void> {
+  const script = [
+    "Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class LobsterMouse{[DllImport(\"user32.dll\")]public static extern bool SetCursorPos(int x,int y);[DllImport(\"user32.dll\")]public static extern void mouse_event(uint f,uint dx,uint dy,uint d,UIntPtr e);}';",
+    `[LobsterMouse]::SetCursorPos(${x},${y})`,
+    "[LobsterMouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)",
+    "[LobsterMouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)",
+  ].join("; ");
+  return new Promise((resolve, reject) => {
+    execFile("powershell.exe", ["-NoProfile", "-Command", script], { timeout: 15_000, windowsHide: true }, (error) =>
+      error ? reject(error) : resolve()
+    );
+  });
+}
+
+/** Escribe texto en la ventana activa vía portapapeles + Ctrl+V. */
+function typeText(text: string): Promise<void> {
+  const base64 = Buffer.from(text, "utf8").toString("base64");
+  const script = [
+    "Add-Type -AssemblyName System.Windows.Forms",
+    `$t=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${base64}'))`,
+    "Set-Clipboard -Value $t",
+    "[System.Windows.Forms.SendKeys]::SendWait('^v')",
+  ].join("; ");
+  return new Promise((resolve, reject) => {
+    execFile("powershell.exe", ["-NoProfile", "-Command", script], { timeout: 20_000, windowsHide: true }, (error) =>
+      error ? reject(error) : resolve()
+    );
+  });
+}
+
 export const TOOLS: Record<string, Tool> = {
   list_files: {
     description: "Lista archivos y carpetas de un directorio del PC",
@@ -144,6 +231,56 @@ export const TOOLS: Record<string, Tool> = {
         `RAM: ${freeGb} GB libres de ${totalGb} GB`,
         `Uptime: ${Math.round(os.uptime() / 3600)} h`,
       ].join("\n");
+    },
+  },
+
+  screenshot: {
+    description: "Captura la pantalla actual a un PNG en disco y devuelve la ruta",
+    args: "{}",
+    async run() {
+      const size = await captureScreen();
+      return `Captura guardada en ${SCREENSHOT_PATH} (${size} px)`;
+    },
+  },
+
+  look: {
+    description: "Mira la pantalla con un modelo de visión y responde una pregunta sobre lo que se ve (p. ej. coordenadas de un botón). Envía la captura a OpenRouter.",
+    args: '{"question":"¿Dónde está el botón Guardar? Responde x,y"}',
+    async run(args) {
+      if (typeof args.question !== "string" || !args.question.trim()) throw new Error("falta el argumento question");
+      await captureScreen();
+      const answer = await askVision(args.question.trim());
+      return truncate(answer, 1200);
+    },
+  },
+
+  click: {
+    description: "Clic izquierdo en coordenadas de pantalla (requiere AGENT_ALLOW_CLICKS=1; si no, solo muestra la vista previa)",
+    args: '{"x":100,"y":200}',
+    async run(args) {
+      const x = Number(args.x);
+      const y = Number(args.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x > 20000 || y > 20000) {
+        throw new Error("coordenadas inválidas");
+      }
+      if (process.env.AGENT_ALLOW_CLICKS !== "1") {
+        return `VISTA PREVIA: el clic iría a (${Math.round(x)}, ${Math.round(y)}). Para ejecutarlo de verdad define AGENT_ALLOW_CLICKS=1 y reinicia el server.`;
+      }
+      await clickAt(Math.round(x), Math.round(y));
+      return `Clic ejecutado en (${Math.round(x)}, ${Math.round(y)}).`;
+    },
+  },
+
+  type_text: {
+    description: "Escribe texto en la ventana activa (requiere AGENT_ALLOW_CLICKS=1; si no, solo muestra vista previa)",
+    args: '{"text":"hola mundo"}',
+    async run(args) {
+      if (typeof args.text !== "string" || !args.text) throw new Error("falta el argumento text");
+      if (process.env.AGENT_ALLOW_CLICKS !== "1") {
+        return `VISTA PREVIA: se escribiría "${truncate(args.text, 80)}". Para hacerlo de verdad define AGENT_ALLOW_CLICKS=1 y reinicia el server.`;
+      }
+      await typeText(args.text);
+      return `Texto escrito (${args.text.length} caracteres).`;
     },
   },
 };
