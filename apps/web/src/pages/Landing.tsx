@@ -52,7 +52,7 @@ const FEATURES = [
     icon: MessageSquare,
   },
   {
-    title: "Agente con 12 herramientas",
+    title: "Agente con 17 herramientas",
     body: "Archivos, comandos permitidos, URLs, estado del sistema, captura de pantalla y clics. Ciclo percibir → actuar → verificar.",
     icon: Brain,
   },

@@ -4,6 +4,7 @@ import path from "node:path";
 import { readdir, readFile } from "node:fs/promises";
 import { DEFAULT_MODEL } from "@lobster/shared";
 import { CLOUD_ENABLED, VISION_MODEL, cloudChat, cloudCompletion, fetchWithRetry } from "./llm.js";
+import { browserClick, browserClose, browserOpen, browserRead, browserType } from "./browser.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
 
@@ -377,6 +378,55 @@ export const TOOLS: Record<string, Tool> = {
         );
       });
       return "Texto copiado al portapapeles.";
+    },
+  },
+
+  browser_open: {
+    description: "Abre una URL en un navegador headless AISLADO (perfil nuevo, sin logins ni cookies del usuario) y devuelve título y texto",
+    args: '{"url":"https://ejemplo.com"}',
+    async run(args) {
+      if (typeof args.url !== "string" || !args.url.trim()) throw new Error("falta el argumento url");
+      return truncate(await browserOpen(args.url.trim()), 3500);
+    },
+  },
+
+  browser_read: {
+    description: "Devuelve el título y el texto de la página actual del navegador aislado",
+    args: "{}",
+    async run() {
+      return truncate(await browserRead(), 3500);
+    },
+  },
+
+  browser_click: {
+    description: "Clic en un elemento del navegador aislado por selector CSS o texto visible (AGENT_ALLOW_BROWSER=0 lo deja en vista previa)",
+    args: '{"target":"Aceptar"}',
+    async run(args) {
+      if (typeof args.target !== "string" || !args.target.trim()) throw new Error("falta el argumento target");
+      if (process.env.AGENT_ALLOW_BROWSER === "0") {
+        return `VISTA PREVIA: clic en "${args.target}" (define AGENT_ALLOW_BROWSER=1 para ejecutarlo).`;
+      }
+      return await browserClick(args.target.trim());
+    },
+  },
+
+  browser_type: {
+    description: "Escribe texto en un campo del navegador aislado por selector/placeholder/label (AGENT_ALLOW_BROWSER=0 lo deja en vista previa)",
+    args: '{"target":"input[name=q]","text":"hola"}',
+    async run(args) {
+      if (typeof args.target !== "string" || typeof args.text !== "string") throw new Error("faltan target y text");
+      if (process.env.AGENT_ALLOW_BROWSER === "0") {
+        return `VISTA PREVIA: escribir "${truncate(args.text, 60)}" en "${args.target}".`;
+      }
+      return await browserType(args.target.trim(), args.text);
+    },
+  },
+
+  browser_close: {
+    description: "Cierra el navegador headless aislado",
+    args: "{}",
+    async run() {
+      return await browserClose();
     },
   },
 };

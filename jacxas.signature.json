@@ -1,0 +1,11 @@
+{
+  "projectName": "lobster-assistant",
+  "origin": "JACXAS",
+  "brandSystem": "jacxas-v1",
+  "signatureMode": "technical",
+  "logoRoute": "A",
+  "robotProfile": "operator-v1",
+  "tokensProfile": "jx-dark-cyan-violet",
+  "createdWith": "JACXAS Brand OS // installJacxasSignature",
+  "buildStamp": "2026-11-14T00:00:00Z"
+}

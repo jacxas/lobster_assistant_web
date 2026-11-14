@@ -169,6 +169,33 @@ describe("runAgent", () => {
     });
   });
 
+  it("browser_open rechaza esquemas no http/https", async () => {
+    await runAgent("prueba", {
+      maxSteps: 3,
+      brain: brainFrom(['{"action":"browser_open","args":{"url":"ftp://x.com"}}', '{"final":"ok"}']),
+      onEvent: (event) => {
+        if (event.type === "observation") expect(event.result).toContain("http/https");
+      },
+    });
+  });
+
+  it("browser_click queda en vista previa si AGENT_ALLOW_BROWSER=0", async () => {
+    const previo = process.env.AGENT_ALLOW_BROWSER;
+    process.env.AGENT_ALLOW_BROWSER = "0";
+    try {
+      await runAgent("prueba", {
+        maxSteps: 3,
+        brain: brainFrom(['{"action":"browser_click","args":{"target":"Aceptar"}}', '{"final":"ok"}']),
+        onEvent: (event) => {
+          if (event.type === "observation") expect(event.result).toContain("VISTA PREVIA");
+        },
+      });
+    } finally {
+      if (previo === undefined) delete process.env.AGENT_ALLOW_BROWSER;
+      else process.env.AGENT_ALLOW_BROWSER = previo;
+    }
+  });
+
   it("falla cuando agota los pasos", async () => {
     await expect(
       runAgent("prueba", {
