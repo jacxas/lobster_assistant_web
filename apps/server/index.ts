@@ -8,6 +8,7 @@ import { runMigrations } from "./db/schema.js";
 import { generalLimiter } from "./middleware/rateLimit.js";
 import { chatRouter } from "./routes/chat.js";
 import { agentRouter } from "./routes/agent.js";
+import { statsRouter } from "./routes/stats.js";
 import { oauthRouter } from "./routes/oauth.js";
 import { statusRouter } from "./routes/status.js";
 
@@ -36,6 +37,7 @@ export function buildApp(): Express {
   app.use("/api/chat", chatRouter);
   app.use("/api/agent", agentRouter);
   app.use("/api/status", statusRouter);
+  app.use("/api/stats", statsRouter);
 
   // Zona de pruebas para vision/clic (estatica, no toca el sistema)
   app.get("/sandbox", (_req, res) => {

@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import AssistantChat from "@/components/chat/AssistantChat";
+import { Dashboard } from "@/components/dashboard/Dashboard";
 import { Activity, Bot, ChevronRight, FolderOpen, Gauge, LayoutDashboard, MessageSquare, Moon, MoreHorizontal, Network, Search, Settings, Terminal, Wifi, Zap } from "lucide-react";
 
 type AppId = "home" | "assistant" | "models" | "channels" | "files" | "system" | "setup" | "settings";
@@ -34,6 +35,7 @@ function Panel({ title, children, className = "" }: { title: string; children: R
   </section>;
 }
 
+// Deprecated: la home ahora la renderiza <Dashboard /> (components/dashboard).
 function Overview({ open }: { open: (id: AppId) => void }) {
   const cards = [
     ["Assistant", "Chat with your local AI", "assistant", MessageSquare],
@@ -161,7 +163,7 @@ export default function DesktopShell() {
         <main className="min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_70%_10%,rgba(249,115,22,.07),transparent_30%),linear-gradient(180deg,#0d0d10_0%,#09090b_100%)]">
           <div className="mx-auto max-w-[1400px] p-5 md:p-7">
             <div className="mb-6 flex items-center gap-3"><div className="rounded-lg border border-white/8 bg-white/5 p-2 text-orange-300"><ActiveIcon className="h-4 w-4" /></div><div><p className="text-[10px] uppercase tracking-[.2em] text-white/25">Lobster Workspace</p><h1 className="text-lg font-semibold text-white">{apps[active].title}</h1></div></div>
-            {active === "home" ? <Overview open={open} /> : active === "assistant" ? <AssistantChat /> : <AppPanel id={active} />}
+            {active === "home" ? <Dashboard onNavigate={(id) => open(id as AppId)} /> : active === "assistant" ? <AssistantChat /> : <AppPanel id={active} />}
           </div>
         </main>
       </div>
