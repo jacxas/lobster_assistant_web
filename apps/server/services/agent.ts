@@ -8,7 +8,7 @@ const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_DEFAULT_MODEL = "cognitivecomputations/dolphin-mistral-24b-venice-edition:free";
 
-const MAX_STEPS = Number(process.env.AGENT_MAX_STEPS || 8);
+export const MAX_STEPS = Number(process.env.AGENT_MAX_STEPS || 8);
 const OBSERVATION_LIMIT = 1500;
 const COMMAND_TIMEOUT_MS = 15_000;
 

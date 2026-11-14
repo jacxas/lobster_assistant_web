@@ -1,6 +1,6 @@
 import { Router } from "express";
 import db from "../db/client.js";
-import { TOOLS } from "../services/agent.js";
+import { TOOLS, MAX_STEPS } from "../services/agent.js";
 
 export const statsRouter: Router = Router();
 
@@ -44,7 +44,7 @@ statsRouter.get("/", (_req, res) => {
       visionModel: process.env.AGENT_VISION_MODEL || "nvidia/nemotron-3.5-super-vl:free",
       model: process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free",
       cloud: Boolean(process.env.OPENROUTER_API_KEY),
-      maxSteps: Number(process.env.AGENT_MAX_STEPS || 6),
+      maxSteps: MAX_STEPS,
       tools: Object.keys(TOOLS).length,
     },
   });

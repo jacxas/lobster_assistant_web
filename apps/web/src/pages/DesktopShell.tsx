@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import AssistantChat from "@/components/chat/AssistantChat";
+import { Link } from "wouter";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { Activity, Bot, ChevronRight, FolderOpen, Gauge, LayoutDashboard, MessageSquare, Moon, MoreHorizontal, Network, Search, Settings, Terminal, Wifi, Zap } from "lucide-react";
 
@@ -154,7 +155,7 @@ export default function DesktopShell() {
           <div className="mb-4 px-2 text-[10px] font-semibold uppercase tracking-[.2em] text-white/25">Workspace</div>
           <nav className="space-y-1">{visibleNav.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => open(id)} className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition ${active === id ? "bg-orange-500/10 text-orange-300" : "text-white/45 hover:bg-white/5 hover:text-white/80"}`}><Icon className="h-4 w-4" /><span>{label}</span>{active === id && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-orange-400" />}</button>)}</nav>
           <div className="mt-6 border-t border-white/7 pt-4">
-            <button onClick={() => open("setup")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/40 hover:bg-white/5 hover:text-white"><Zap className="h-4 w-4" /> Setup Wizard</button>
+            <Link href="/setup" className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/40 hover:bg-white/5 hover:text-white"><Zap className="h-4 w-4" /> Setup Wizard</Link>
             <button onClick={() => open("settings")} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/40 hover:bg-white/5 hover:text-white"><Settings className="h-4 w-4" /> Settings</button>
           </div>
           <div className="mt-8 rounded-xl border border-white/7 bg-white/[0.03] p-3"><div className="flex items-center gap-2"><Wifi className="h-3.5 w-3.5 text-emerald-400" /><span className="text-xs text-white/45">Local runtime</span><span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400" /></div></div>
