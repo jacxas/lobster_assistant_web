@@ -1,0 +1,76 @@
+// Proveedor de nube agnóstico (protocolo OpenAI). Cambiás LLM_BASE_URL/LLM_API_KEY/LLM_MODEL
+// y funciona con OpenRouter, Google AI Studio (Gemini), Groq, Cerebras o Cloudflare.
+const stripTrailing = (url: string) => url.replace(/\/+$/, "");
+
+export const CLOUD_BASE = stripTrailing(
+  process.env.LLM_BASE_URL || "https://openrouter.ai/api/v1"
+);
+export const CLOUD_KEY = process.env.LLM_API_KEY || process.env.OPENROUTER_API_KEY || "";
+export const CLOUD_MODEL =
+  process.env.LLM_MODEL || process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free";
+export const VISION_MODEL =
+  process.env.LLM_VISION_MODEL || process.env.AGENT_VISION_MODEL || "nvidia/nemotron-3.5-super-vl:free";
+export const CLOUD_ENABLED = Boolean(CLOUD_KEY);
+
+/** fetch con reintentos ante 429/5xx y errores de red (tiers gratuitos). */
+export async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if ((res.status === 429 || res.status >= 500) && attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+        continue;
+      }
+      return res;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= retries) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("fetch failed");
+}
+
+interface CloudChoice {
+  message?: { content?: string };
+}
+
+/** POST /chat/completions al proveedor configurado; devuelve el JSON parseado. */
+export async function cloudCompletion(
+  payload: Record<string, unknown>,
+  signal?: AbortSignal
+): Promise<{ choices?: CloudChoice[] }> {
+  if (!CLOUD_KEY) throw new Error("sin LLM_API_KEY configurada");
+  const res = await fetchWithRetry(`${CLOUD_BASE}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${CLOUD_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "http://localhost:5173",
+      "X-Title": "Lobster",
+    },
+    body: JSON.stringify(payload),
+    signal,
+  });
+  if (!res.ok) throw new Error(`Proveedor LLM respondió ${res.status} ${res.statusText}`);
+  return (await res.json()) as { choices?: CloudChoice[] };
+}
+
+/** Chat de texto simple sobre el proveedor configurado. */
+export async function cloudChat(
+  messages: { role: string; content: unknown }[],
+  opts: { temperature?: number; maxTokens?: number; model?: string } = {},
+  signal?: AbortSignal
+): Promise<string> {
+  const data = await cloudCompletion(
+    {
+      model: opts.model || CLOUD_MODEL,
+      messages,
+      temperature: opts.temperature ?? 0.2,
+      ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
+    },
+    signal
+  );
+  return data.choices?.[0]?.message?.content ?? "";
+}

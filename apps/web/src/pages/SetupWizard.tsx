@@ -135,13 +135,13 @@ export default function SetupWizard() {
         <StepCard step="1" title="Cerebro (modelo de IA)" icon={Cpu} index={0}>
           <div className="flex flex-wrap items-center gap-4">
             <Check ok={ollamaOk} label={ollamaOk ? `Ollama online (${models.length} modelos)` : "Ollama offline"} />
-            <Check ok={cloud} label={cloud ? "OpenRouter configurado" : "OpenRouter sin key"} />
+            <Check ok={cloud} label={cloud ? "Nube configurada" : "Nube sin key"} />
             <span className="text-[11px] text-white/35">Activo: {cloud ? shortModel(stats?.agent.model ?? "") : "local"}</span>
           </div>
           <p className="text-xs text-white/40">
             {cloud
-              ? "El agente usa la nube (rápido). Si la cuota gratis se agota, reintenta solo y cae a local cuando lo actives."
-              : "Sin key de OpenRouter: el agente usa Ollama local. Lento en equipos viejos, pero 100% privado."}
+              ? "El agente usa la nube (rápido). Si la cuota gratis se agota, reintenta solo y, si falla, cae a Ollama local."
+              : "Sin key de nube: el agente usa Ollama local. Lento en equipos viejos, pero 100% privado."}
           </p>
           {models.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

@@ -3,10 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import { readdir, readFile } from "node:fs/promises";
 import { DEFAULT_MODEL } from "@lobster/shared";
+import { CLOUD_ENABLED, VISION_MODEL, cloudChat, cloudCompletion, fetchWithRetry } from "./llm.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_DEFAULT_MODEL = "cognitivecomputations/dolphin-mistral-24b-venice-edition:free";
 
 export const MAX_STEPS = Number(process.env.AGENT_MAX_STEPS || 8);
 const OBSERVATION_LIMIT = 1500;
@@ -57,26 +56,6 @@ const runPowerShellFree = (command: string): Promise<string> =>
       }
     );
   });
-
-/** fetch con reintentos ante 429/5xx y errores de red (tier gratis de OpenRouter). */
-async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Promise<Response> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const res = await fetch(url, init);
-      if ((res.status === 429 || res.status >= 500) && attempt < retries) {
-        await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
-        continue;
-      }
-      return res;
-    } catch (error) {
-      lastError = error;
-      if (attempt >= retries) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error("fetch failed");
-}
 
 /** Convierte HTML en texto plano legible (sin scripts, estilos ni etiquetas). */
 export function stripHtml(html: string): string {
@@ -143,19 +122,11 @@ function overlayGrid(): Promise<void> {
 
 /** Pregunta a un modelo de visión (OpenRouter) sobre la última captura. */
 async function askVision(question: string, imagePath: string = SCREENSHOT_PATH, signal?: AbortSignal): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("la visión necesita OPENROUTER_API_KEY (no hay VLM local viable en esta PC)");
+  if (!CLOUD_ENABLED) throw new Error("la visión necesita LLM_API_KEY (no hay VLM local viable en esta PC)");
   const base64 = (await readFile(imagePath)).toString("base64");
-  const res = await fetchWithRetry("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "http://localhost:5173",
-      "X-Title": "Lobster Vision",
-    },
-    body: JSON.stringify({
-      model: process.env.AGENT_VISION_MODEL || "nvidia/nemotron-3.5-super-vl:free",
+  const data = await cloudCompletion(
+    {
+      model: VISION_MODEL,
       messages: [
         {
           role: "user",
@@ -166,11 +137,9 @@ async function askVision(question: string, imagePath: string = SCREENSHOT_PATH, 
         },
       ],
       max_tokens: 800,
-    }),
-    signal,
-  });
-  if (!res.ok) throw new Error(`Vision error: ${res.status} ${res.statusText}`);
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    },
+    signal
+  );
   return data.choices?.[0]?.message?.content ?? "";
 }
 
@@ -486,29 +455,20 @@ async function callOllama(messages: { role: string; content: string }[], signal?
   return data.message?.content ?? "";
 }
 
-async function callOpenRouter(messages: { role: string; content: string }[], signal?: AbortSignal): Promise<string> {
-  const res = await fetchWithRetry(OPENROUTER_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "http://localhost:5173",
-      "X-Title": "Lobster Agent",
-    },
-    body: JSON.stringify({
-      model: process.env.OPENROUTER_MODEL || OPENROUTER_DEFAULT_MODEL,
-      messages,
-      temperature: 0.2,
-    }),
-    signal,
-  });
-  if (!res.ok) throw new Error(`OpenRouter error: ${res.status} ${res.statusText}`);
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  return data.choices?.[0]?.message?.content ?? "";
+async function callCloud(messages: { role: string; content: string }[], signal?: AbortSignal): Promise<string> {
+  return cloudChat(messages, { temperature: 0.2 }, signal);
 }
 
-const defaultBrain: AgentBrain = (messages, signal) =>
-  process.env.OPENROUTER_API_KEY ? callOpenRouter(messages, signal) : callOllama(messages, signal);
+const defaultBrain: AgentBrain = async (messages, signal) => {
+  if (!CLOUD_ENABLED) return callOllama(messages, signal);
+  try {
+    return await callCloud(messages, signal);
+  } catch (error) {
+    if (process.env.AGENT_LOCAL_FALLBACK === "0") throw error;
+    console.warn("[agent] nube falló, cayendo a Ollama local:", error instanceof Error ? error.message : error);
+    return callOllama(messages, signal);
+  }
+};
 
 /** Ejecuta una tarea con bucle percibir → actuar → observar. Devuelve la respuesta final. */
 export async function runAgent(

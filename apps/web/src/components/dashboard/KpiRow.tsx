@@ -61,7 +61,7 @@ export function KpiRow({ stats }: { stats: DashboardStats | null }) {
     {
       label: "Cerebro",
       value: stats ? (stats.agent.cloud ? "Nube" : "Local") : "",
-      hint: stats ? (stats.agent.cloud ? "OpenRouter · libre por ahora" : "Ollama · privado") : "",
+      hint: stats ? (stats.agent.cloud ? "API externa · tier gratis" : "Ollama · privado") : "",
       icon: stats?.agent.cloud ? Cloud : HardDrive,
       accent: "text-emerald-300",
     },

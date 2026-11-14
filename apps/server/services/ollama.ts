@@ -1,4 +1,5 @@
 import { DEFAULT_MODEL as SHARED_DEFAULT_MODEL, DEFAULT_MAX_RESPONSE_LENGTH } from "@lobster/shared";
+import { CLOUD_ENABLED, cloudChat } from "./llm.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || SHARED_DEFAULT_MODEL;
@@ -102,28 +103,21 @@ export async function chat(
   model = DEFAULT_MODEL,
   signal?: AbortSignal
 ): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (apiKey) {
-    const numPredict = resolveNumPredict();
-    const cloudRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:5173",
-        "X-Title": "Lobster Bot",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free",
+  if (CLOUD_ENABLED) {
+    try {
+      const numPredict = resolveNumPredict();
+      return await cloudChat(
         messages,
-        temperature: 0.6,
-        ...(Number.isInteger(numPredict) && numPredict > 0 ? { max_tokens: numPredict } : {}),
-      }),
-      signal,
-    });
-    if (!cloudRes.ok) throw new Error(`OpenRouter error: ${cloudRes.status} ${cloudRes.statusText}`);
-    const cloudData = (await cloudRes.json()) as { choices?: { message?: { content?: string } }[] };
-    return cloudData.choices?.[0]?.message?.content ?? "";
+        {
+          temperature: 0.6,
+          ...(Number.isInteger(numPredict) && numPredict > 0 ? { maxTokens: numPredict } : {}),
+        },
+        signal
+      );
+    } catch (error) {
+      if (process.env.AGENT_LOCAL_FALLBACK === "0") throw error;
+      console.warn("[chat] nube falló, cayendo a Ollama local:", error instanceof Error ? error.message : error);
+    }
   }
 
   const payload: Record<string, unknown> = { model, messages, stream: true };
