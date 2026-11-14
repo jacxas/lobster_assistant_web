@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "wouter";
 import { ArrowRight, Lock, ShieldCheck, Sparkles, ServerOff, FlaskConical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -54,6 +55,15 @@ export function Hero({ onOpenChat }: { onOpenChat: () => void }) {
             <FlaskConical className="h-4 w-4" aria-hidden />
             Sandbox de pruebas
           </Button>
+          <Link href="/landing">
+            <Button
+              variant="secondary"
+              className="gap-2 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden />
+              Ver landing
+            </Button>
+          </Link>
         </div>
 
         <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-2">
