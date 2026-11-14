@@ -8,7 +8,7 @@ const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_DEFAULT_MODEL = "cognitivecomputations/dolphin-mistral-24b-venice-edition:free";
 
-const MAX_STEPS = Number(process.env.AGENT_MAX_STEPS || 6);
+const MAX_STEPS = Number(process.env.AGENT_MAX_STEPS || 8);
 const OBSERVATION_LIMIT = 1500;
 const COMMAND_TIMEOUT_MS = 15_000;
 
@@ -57,6 +57,43 @@ const runPowerShellFree = (command: string): Promise<string> =>
       }
     );
   });
+
+/** fetch con reintentos ante 429/5xx y errores de red (tier gratis de OpenRouter). */
+async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if ((res.status === 429 || res.status >= 500) && attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+        continue;
+      }
+      return res;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= retries) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("fetch failed");
+}
+
+/** Convierte HTML en texto plano legible (sin scripts, estilos ni etiquetas). */
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 const SCREENSHOT_PATH = path.join(os.tmpdir(), "lobster-screenshot.png").replace(/\\/g, "/");
 const GRID_SCREENSHOT_PATH = path.join(os.tmpdir(), "lobster-screenshot-grid.png").replace(/\\/g, "/");
@@ -109,7 +146,7 @@ async function askVision(question: string, imagePath: string = SCREENSHOT_PATH, 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("la visión necesita OPENROUTER_API_KEY (no hay VLM local viable en esta PC)");
   const base64 = (await readFile(imagePath)).toString("base64");
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const res = await fetchWithRetry("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -315,6 +352,64 @@ export const TOOLS: Record<string, Tool> = {
       return `Texto escrito (${args.text.length} caracteres).`;
     },
   },
+
+  fetch_url: {
+    description: "Descarga una página web (http/https) y devuelve su texto limpio, máximo 4000 caracteres",
+    args: '{"url":"https://ejemplo.com"}',
+    async run(args) {
+      if (typeof args.url !== "string") throw new Error("falta el argumento url");
+      let parsed: URL;
+      try {
+        parsed = new URL(args.url);
+      } catch {
+        throw new Error("URL inválida");
+      }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        throw new Error("solo se permiten URLs http/https");
+      }
+      const res = await fetchWithRetry(parsed.toString(), {
+        headers: { "User-Agent": "LobsterAgent/1.0" },
+        signal: AbortSignal.timeout(25_000),
+      });
+      if (!res.ok) throw new Error(`la página respondió ${res.status}`);
+      const raw = await res.text();
+      const text = stripHtml(raw);
+      if (!text) return "(la página no tiene texto extraíble)";
+      return truncate(text, 4000);
+    },
+  },
+
+  clipboard_get: {
+    description: "Lee el contenido del portapapeles de Windows (máx 2000 caracteres)",
+    args: "{}",
+    async run() {
+      const text = await new Promise<string>((resolve, reject) => {
+        execFile(
+          "powershell.exe",
+          ["-NoProfile", "-Command", "Get-Clipboard -Raw"],
+          { timeout: 15_000, windowsHide: true, maxBuffer: 1024 * 1024 },
+          (error, stdout) => (error ? reject(error) : resolve(String(stdout)))
+        );
+      });
+      return truncate(text.trim() || "(portapapeles vacío)", 2000);
+    },
+  },
+
+  clipboard_set: {
+    description: "Copia un texto al portapapeles de Windows",
+    args: '{"text":"hola"}',
+    async run(args) {
+      if (typeof args.text !== "string" || !args.text) throw new Error("falta el argumento text");
+      const base64 = Buffer.from(args.text, "utf8").toString("base64");
+      const script = `$t=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${base64}')); Set-Clipboard -Value $t`;
+      await new Promise<void>((resolve, reject) => {
+        execFile("powershell.exe", ["-NoProfile", "-Command", script], { timeout: 15_000, windowsHide: true }, (error) =>
+          error ? reject(error) : resolve()
+        );
+      });
+      return "Texto copiado al portapapeles.";
+    },
+  },
 };
 
 const buildSystemPrompt = (): string => {
@@ -380,7 +475,7 @@ async function callOllama(messages: { role: string; content: string }[], signal?
       temperature: 0.2,
     },
   };
-  const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
+  const res = await fetchWithRetry(`${OLLAMA_BASE}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -392,7 +487,7 @@ async function callOllama(messages: { role: string; content: string }[], signal?
 }
 
 async function callOpenRouter(messages: { role: string; content: string }[], signal?: AbortSignal): Promise<string> {
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await fetchWithRetry(OPENROUTER_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,

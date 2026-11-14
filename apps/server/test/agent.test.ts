@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { extractJsonObject, parseStep, runAgent, type AgentBrain } from "../services/agent.js";
+import { extractJsonObject, parseStep, runAgent, stripHtml, type AgentBrain } from "../services/agent.js";
 
 const brainFrom = (replies: string[]): AgentBrain => {
   let index = 0;
@@ -38,6 +38,16 @@ describe("parseStep / extractJsonObject", () => {
   it("extractJsonObject devuelve el primer objeto equilibrado", () => {
     expect(extractJsonObject('x {"a":{"b":1}} y')).toBe('{"a":{"b":1}}');
     expect(extractJsonObject("sin llaves {")).toBeNull();
+  });
+});
+
+describe("stripHtml", () => {
+  it("quita scripts, estilos y etiquetas y decodifica entidades", () => {
+    const html = "<html><style>body{color:red}</style><script>alert('x')</script><h1>Hola &amp; chau</h1><p>Texto <b>importante</b>&nbsp;aquí</p></html>";
+    const text = stripHtml(html);
+    expect(text).toBe("Hola & chau Texto importante aquí");
+    expect(text).not.toContain("alert");
+    expect(text).not.toContain("color");
   });
 });
 
@@ -147,6 +157,16 @@ describe("runAgent", () => {
     } finally {
       if (previo !== undefined) process.env.AGENT_ALLOW_CLICKS = previo;
     }
+  });
+
+  it("fetch_url rechaza esquemas que no sean http/https", async () => {
+    await runAgent("prueba", {
+      maxSteps: 3,
+      brain: brainFrom(['{"action":"fetch_url","args":{"url":"file:///C:/Windows/win.ini"}}', '{"final":"ok"}']),
+      onEvent: (event) => {
+        if (event.type === "observation") expect(event.result).toContain("http/https");
+      },
+    });
   });
 
   it("falla cuando agota los pasos", async () => {

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import db from "../db/client.js";
+import { TOOLS } from "../services/agent.js";
 
 export const statsRouter: Router = Router();
 
@@ -44,7 +45,7 @@ statsRouter.get("/", (_req, res) => {
       model: process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free",
       cloud: Boolean(process.env.OPENROUTER_API_KEY),
       maxSteps: Number(process.env.AGENT_MAX_STEPS || 6),
-      tools: 10,
+      tools: Object.keys(TOOLS).length,
     },
   });
 });

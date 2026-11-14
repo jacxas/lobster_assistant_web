@@ -3,6 +3,7 @@ import { z } from "zod";
 import { sessionMiddleware } from "../middleware/session.js";
 import { chatLimiter } from "../middleware/rateLimit.js";
 import { runAgent } from "../services/agent.js";
+import { saveMessage } from "../db/messages.js";
 
 export const agentRouter: Router = Router();
 agentRouter.use(sessionMiddleware);
@@ -30,6 +31,8 @@ agentRouter.post("/", async (req, res) => {
   if (!stream) {
     try {
       const answer = await runAgent(task, { signal: abort.signal });
+      saveMessage(req.sessionId, "user", task);
+      saveMessage(req.sessionId, "assistant", answer);
       res.json({ answer });
     } catch (error) {
       console.error("[agent] error:", error);
@@ -64,6 +67,8 @@ agentRouter.post("/", async (req, res) => {
       },
     });
     sendEvent("chunk", { text: `\n${answer}` });
+    saveMessage(req.sessionId, "user", task);
+    saveMessage(req.sessionId, "assistant", answer);
     sendEvent("done", {});
   } catch (error) {
     sendEvent("error", { message: error instanceof Error ? error.message : String(error) });
