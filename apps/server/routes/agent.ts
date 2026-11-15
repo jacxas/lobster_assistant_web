@@ -4,6 +4,7 @@ import { sessionMiddleware } from "../middleware/session.js";
 import { chatLimiter } from "../middleware/rateLimit.js";
 import { runAgent } from "../services/agent.js";
 import { saveMessage } from "../db/messages.js";
+import { getHistory } from "../db/messages.js";
 
 export const agentRouter: Router = Router();
 agentRouter.use(sessionMiddleware);
@@ -28,9 +29,14 @@ agentRouter.post("/", async (req, res) => {
     if (!res.writableEnded) abort.abort();
   });
 
+  const recent = getHistory(req.sessionId, 4)
+    .map((m) => `${m.role}: ${String(m.content).replace(/\s+/g, " ").slice(0, 160)}`)
+    .join("\n");
+  const context = recent || undefined;
+
   if (!stream) {
     try {
-      const answer = await runAgent(task, { signal: abort.signal });
+      const answer = await runAgent(task, { signal: abort.signal, context });
       saveMessage(req.sessionId, "user", task);
       saveMessage(req.sessionId, "assistant", answer);
       res.json({ answer });
@@ -58,6 +64,7 @@ agentRouter.post("/", async (req, res) => {
   try {
     const answer = await runAgent(task, {
       signal: abort.signal,
+      context,
       onEvent: (event) => {
         if (event.type === "action") {
           sendEvent("chunk", { text: `\n🔧 ${event.tool} ${JSON.stringify(event.args)}\n` });

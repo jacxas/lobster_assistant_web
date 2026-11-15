@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDashboardData } from "@/components/dashboard/useDashboardData";
+import { TELEGRAM_URL } from "@/config";
 import { shortModel } from "@/components/dashboard/useDashboardData";
 
 const API_BASE = "http://localhost:3000";
@@ -203,7 +204,7 @@ export default function SetupWizard() {
             >
               <FlaskConical className="h-4 w-4" /> Sandbox
             </Button>
-            <a href="https://t.me/Jacxasbot" target="_blank" rel="noreferrer">
+            <a href={TELEGRAM_URL} target="_blank" rel="noreferrer">
               <Button variant="secondary" className="gap-2 rounded-xl border border-white/10 bg-white/5 text-white/80 hover:bg-white/10">
                 <Send className="h-4 w-4" /> Telegram
               </Button>

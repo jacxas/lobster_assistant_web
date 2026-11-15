@@ -18,6 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TELEGRAM_URL } from "@/config";
 
 const TRANSCRIPT = `> "lista mi carpeta Descargas y decime cuántos archivos hay"
 
@@ -425,7 +426,7 @@ export default function Landing() {
               </Button>
             </Link>
             <a
-              href="https://t.me/Jacxasbot"
+              href={TELEGRAM_URL}
               target="_blank"
               rel="noreferrer"
               className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/[0.05]"

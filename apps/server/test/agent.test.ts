@@ -226,6 +226,17 @@ describe("runAgent", () => {
     }
   });
 
+  it("incluye el contexto de sesión en el primer mensaje al cerebro", async () => {
+    let primerMensajeUsuario = "";
+    const brain: AgentBrain = async (messages) => {
+      primerMensajeUsuario = messages[1]?.content ?? "";
+      return '{"final":"ok"}';
+    };
+    await runAgent("tarea x", { context: "user: hola\nassistant: hey", brain, maxSteps: 2 });
+    expect(primerMensajeUsuario).toContain("Contexto reciente");
+    expect(primerMensajeUsuario).toContain("user: hola");
+  });
+
   it("falla cuando agota los pasos", async () => {
     await expect(
       runAgent("prueba", {

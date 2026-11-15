@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { MessageSquare, Brain, Eye, FlaskConical, Send, Layers } from "lucide-react";
+import { TELEGRAM_BOT, TELEGRAM_URL } from "@/config";
 
 interface Action {
   label: string;
@@ -41,9 +42,9 @@ export function QuickActions({ onNavigate }: { onNavigate: (id: string) => void 
     },
     {
       label: "Bot Telegram",
-      desc: "@Jacxasbot",
+      desc: `@${TELEGRAM_BOT}`,
       icon: Send,
-      run: () => window.open("https://t.me/Jacxasbot", "_blank"),
+      run: () => window.open(TELEGRAM_URL, "_blank"),
       accent: "text-blue-300",
     },
     {

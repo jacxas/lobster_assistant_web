@@ -524,13 +524,18 @@ const defaultBrain: AgentBrain = async (messages, signal) => {
 /** Ejecuta una tarea con bucle percibir → actuar → observar. Devuelve la respuesta final. */
 export async function runAgent(
   task: string,
-  options: { onEvent?: (event: AgentEvent) => void; signal?: AbortSignal; brain?: AgentBrain; maxSteps?: number } = {}
+  options: { onEvent?: (event: AgentEvent) => void; signal?: AbortSignal; brain?: AgentBrain; maxSteps?: number; context?: string } = {}
 ): Promise<string> {
   const { onEvent = () => {}, signal, brain = defaultBrain } = options;
   const maxSteps = options.maxSteps ?? MAX_STEPS;
   const messages: { role: string; content: string }[] = [
     { role: "system", content: AGENT_SYSTEM_PROMPT },
-    { role: "user", content: `Tarea: ${task}` },
+    {
+      role: "user",
+      content: options.context
+        ? `Tarea: ${task}\n\nContexto reciente de la sesión (referencia; no lo repitas):\n${options.context}`
+        : `Tarea: ${task}`,
+    },
   ];
 
   for (let step = 1; step <= maxSteps; step++) {
