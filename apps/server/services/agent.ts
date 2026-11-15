@@ -5,6 +5,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { DEFAULT_MODEL } from "@lobster/shared";
 import { CLOUD_ENABLED, VISION_MODEL, cloudChat, cloudCompletion, fetchWithRetry } from "./llm.js";
 import { browserClick, browserClose, browserOpen, browserRead, browserType } from "./browser.js";
+import { evaluateTool } from "./permissions.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
 
@@ -558,10 +559,17 @@ export async function runAgent(
 
     onEvent({ type: "action", tool: parsed.action, args: parsed.args });
     let result: string;
-    try {
-      result = await tool.run(parsed.args);
-    } catch (error) {
-      result = `ERROR: ${error instanceof Error ? error.message : String(error)}`;
+    const verdict = evaluateTool(parsed.action, parsed.args);
+    if (verdict.decision === "block") {
+      result = `BLOQUEADO por política de permisos: ${verdict.reasons.join("; ")}`;
+    } else if (verdict.decision === "require_confirmation") {
+      result = `REQUIERE CONFIRMACIÓN HUMANA: ${verdict.reasons.join("; ")}`;
+    } else {
+      try {
+        result = await tool.run(parsed.args);
+      } catch (error) {
+        result = `ERROR: ${error instanceof Error ? error.message : String(error)}`;
+      }
     }
     const summary = truncate(result, OBSERVATION_LIMIT);
     onEvent({ type: "observation", tool: parsed.action, result: summary });

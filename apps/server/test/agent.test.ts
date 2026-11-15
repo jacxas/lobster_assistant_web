@@ -70,7 +70,7 @@ describe("runAgent", () => {
     const answer = await runAgent("prueba", {
       maxSteps: 5,
       brain: brainFrom([
-        '{"action":"run_command","args":{"command":"del /f C:\\\\x"}}',
+        '{"action":"run_command","args":{"command":"notepad"}}',
         '{"final":"el comando fue bloqueado"}',
       ]),
       onEvent: (event) => {
@@ -78,6 +78,36 @@ describe("runAgent", () => {
       },
     });
     expect(answer).toContain("bloqueado");
+  });
+
+  it("bloquea operaciones destructivas antes de la allowlist", async () => {
+    await runAgent("prueba", {
+      maxSteps: 3,
+      brain: brainFrom(['{"action":"run_command","args":{"command":"del /f C:\\\\temp"}}', '{"final":"ok"}']),
+      onEvent: (event) => {
+        if (event.type === "observation") expect(event.result).toContain("destructiva");
+      },
+    });
+  });
+
+  it("bloquea credenciales expuestas en los argumentos", async () => {
+    await runAgent("prueba", {
+      maxSteps: 3,
+      brain: brainFrom(['{"action":"clipboard_set","args":{"text":"sk-or-v1-abcdefghijklmnopq"}}', '{"final":"ok"}']),
+      onEvent: (event) => {
+        if (event.type === "observation") expect(event.result).toContain("credencial");
+      },
+    });
+  });
+
+  it("pide confirmación al tocar rutas protegidas", async () => {
+    await runAgent("prueba", {
+      maxSteps: 3,
+      brain: brainFrom(['{"action":"read_file","args":{"path":"C:\\\\Windows\\\\win.ini"}}', '{"final":"ok"}']),
+      onEvent: (event) => {
+        if (event.type === "observation") expect(event.result).toContain("CONFIRMACIÓN");
+      },
+    });
   });
 
   it("rechaza comandos con metacaracteres de shell", async () => {
