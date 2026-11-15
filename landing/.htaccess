@@ -1,4 +1,12 @@
 # Lobster — landing estática (InfinityFree / Apache)
+
+# Forzar HTTPS (el SSL de InfinityFree/ZeroSSL ya está activo)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} off
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
 DirectoryIndex index.html
 Options -Indexes
 
