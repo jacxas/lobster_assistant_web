@@ -7,6 +7,8 @@ import { CLOUD_ENABLED, VISION_MODEL, cloudChat, cloudCompletion, fetchWithRetry
 import { browserClick, browserClose, browserOpen, browserRead, browserType } from "./browser.js";
 import { searchWeb } from "./search.js";
 import { deleteNote, listNotes, saveNote } from "./notes.js";
+import { searchFiles } from "./files.js";
+import { openApp } from "./apps.js";
 import { evaluateTool } from "./permissions.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
@@ -480,6 +482,31 @@ export const TOOLS: Record<string, Tool> = {
       return deleteNote(id) ? `Nota #${id} borrada.` : `No existe la nota #${id}.`;
     },
   },
+
+  file_search: {
+    description: "Busca archivos por nombre en Escritorio, Documentos y Descargas (configurable con AGENT_SEARCH_ROOTS). Devuelve ruta, tamaño y fecha.",
+    args: '{"query":"presupuesto"}',
+    async run(args) {
+      if (typeof args.query !== "string" || !args.query.trim()) throw new Error("falta el argumento query");
+      const files = await searchFiles(args.query, {
+        ...(typeof args.path === "string" && args.path.trim() ? { root: args.path.trim() } : {}),
+        maxResults: typeof args.max === "number" ? args.max : 15,
+      });
+      if (files.length === 0) return `No encontré archivos que coincidan con "${args.query}".`;
+      return files
+        .map((file, index) => `${index + 1}. ${file.path} (${Math.round(file.size / 1024)} KB, ${file.modified})`)
+        .join("\n");
+    },
+  },
+
+  open_app: {
+    description: "Abre una app permitida en Windows: notepad (bloc de notas), calculadora, paint, explorador, chrome",
+    args: '{"app":"notepad"}',
+    async run(args) {
+      if (typeof args.app !== "string" || !args.app.trim()) throw new Error("falta el argumento app");
+      return await openApp(args.app);
+    },
+  },
 };
 
 const buildSystemPrompt = (): string => {
@@ -492,6 +519,7 @@ const buildSystemPrompt = (): string => {
     'Para usar una herramienta: {"action":"<nombre>","args":{...}}',
     'Para responder al usuario: {"final":"<respuesta>"}',
     "Reglas: una sola acción por respuesta; no inventes resultados; si una herramienta falla, explica el error en final o prueba otra acción.",
+    "Puedes usar cualquier herramienta del catálogo sin pedir permiso previo: el sistema aplica sus propias políticas y te responderá BLOQUEADO o REQUIERE CONFIRMACIÓN solo si hiciera falta. No rechaces tareas por seguridad inventando restricciones.",
     "Herramientas disponibles:",
     catalog,
   ].join("\n");

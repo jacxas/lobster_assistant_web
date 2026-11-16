@@ -75,7 +75,7 @@ export function Hero({ onOpenChat }: { onOpenChat: () => void }) {
           ))}
           <li className="flex items-center gap-1.5 text-[11px] font-medium text-white/45">
             <Sparkles size={13} aria-hidden className="text-orange-300" />
-            Agente con 21 herramientas
+            Agente con 23 herramientas
           </li>
         </ul>
       </div>
