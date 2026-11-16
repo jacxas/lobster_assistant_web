@@ -6,6 +6,7 @@ import { DEFAULT_MODEL } from "@lobster/shared";
 import { CLOUD_ENABLED, VISION_MODEL, cloudChat, cloudCompletion, fetchWithRetry } from "./llm.js";
 import { browserClick, browserClose, browserOpen, browserRead, browserType } from "./browser.js";
 import { searchWeb } from "./search.js";
+import { deleteNote, listNotes, saveNote } from "./notes.js";
 import { evaluateTool } from "./permissions.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
@@ -445,6 +446,38 @@ export const TOOLS: Record<string, Tool> = {
         .slice(0, 5)
         .map((result, index) => `${index + 1}. ${result.title}\n   ${result.url}\n   ${result.snippet}`)
         .join("\n\n");
+    },
+  },
+
+  note_save: {
+    description: "Guarda una nota personal persistente (SQLite) que sobrevive reinicios",
+    args: '{"text":"comprar cafe"}',
+    async run(args) {
+      if (typeof args.text !== "string" || !args.text.trim()) throw new Error("falta el argumento text");
+      const note = saveNote(args.text);
+      return `Nota guardada (#${note.id}): "${note.content.slice(0, 160)}"`;
+    },
+  },
+
+  note_list: {
+    description: "Lista las últimas 20 notas guardadas",
+    args: "{}",
+    async run() {
+      const notes = listNotes(20);
+      if (notes.length === 0) return "No hay notas guardadas todavía.";
+      return notes
+        .map((note) => `#${note.id} · ${new Date(note.created_at * 1000).toLocaleDateString("es-AR")} · ${note.content}`)
+        .join("\n");
+    },
+  },
+
+  note_delete: {
+    description: "Borra una nota por su id",
+    args: '{"id":3}',
+    async run(args) {
+      const id = Number(args.id);
+      if (!Number.isInteger(id) || id <= 0) throw new Error("id inválido");
+      return deleteNote(id) ? `Nota #${id} borrada.` : `No existe la nota #${id}.`;
     },
   },
 };
