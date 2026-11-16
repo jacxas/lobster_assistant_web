@@ -1,3 +1,4 @@
+import "./env.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { type Express, type Request, type Response } from "express";

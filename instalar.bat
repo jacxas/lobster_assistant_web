@@ -104,10 +104,10 @@ if exist "node_modules" (
 )
 
 :: ─────────────────────────────────────────
-:: PASO 5 - Compilar paquetes
+:: PASO 5 - Compilar paquetes + crear .env
 :: ─────────────────────────────────────────
 echo.
-echo  [5/5] Compilando paquetes (shared, web, server)...
+echo  [5/6] Compilando paquetes (shared, web, server)...
 call pnpm -r build
 if %errorlevel% neq 0 (
     echo  [X] Error durante el build. Revisa el mensaje de arriba.
@@ -115,13 +115,37 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+echo.
+echo  [6/6] Creando archivo .env (configuracion)...
+if exist ".env" (
+    echo  [OK] .env ya existe, no se toca.
+) else (
+    copy ".env.example" ".env" >nul
+    echo  [OK] .env creado a partir de .env.example
+    echo.
+    echo  IMPORTANTE: para que la IA responda necesitas una clave gratuita.
+    echo   1^) Abri https://aistudio.google.com y crea una API key
+    echo   2^) Ejecuta:  setx LLM_API_KEY "tu-key"
+    echo   3^) Cierra y volve a abrir este instalador (o el arrancar-lobster.bat)
+    echo.
+    echo   Sin clave igual funciona: cae a Ollama local (mas lento).
+)
+
 :: ─────────────────────────────────────────
 :: LISTO
 :: ─────────────────────────────────────────
 echo.
+:: ─────────────────────────────────────────
+:: PASO FINAL - Arrancar
+:: ─────────────────────────────────────────
 echo  =====================================================
-echo   TODO INSTALADO CORRECTAMENTE
+echo   ¿Queres arrancar Lobster ahora? (S/N)
 echo  =====================================================
+choice /C SN /N /M "  >> "
+if errorlevel 2 goto :fin
+call "%~dp0arrancar-lobster.bat"
+
+:fin
 echo.
 echo  Comandos utiles (desde esta carpeta):
 echo.
