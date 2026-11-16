@@ -5,6 +5,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { DEFAULT_MODEL } from "@lobster/shared";
 import { CLOUD_ENABLED, VISION_MODEL, cloudChat, cloudCompletion, fetchWithRetry } from "./llm.js";
 import { browserClick, browserClose, browserOpen, browserRead, browserType } from "./browser.js";
+import { searchWeb } from "./search.js";
 import { evaluateTool } from "./permissions.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
@@ -428,6 +429,22 @@ export const TOOLS: Record<string, Tool> = {
     args: "{}",
     async run() {
       return await browserClose();
+    },
+  },
+
+  search_web: {
+    description: "Busca en la web y devuelve los 5 mejores resultados (título, URL y resumen). Sin API key.",
+    args: '{"query":"clima en Buenos Aires hoy"}',
+    async run(args) {
+      if (typeof args.query !== "string" || !args.query.trim()) throw new Error("falta el argumento query");
+      const results = await searchWeb(args.query.trim());
+      if (results.length === 0) {
+        return "No encontré resultados (posible bloqueo anti-bot). Probá otras palabras o usá browser_open con una URL concreta.";
+      }
+      return results
+        .slice(0, 5)
+        .map((result, index) => `${index + 1}. ${result.title}\n   ${result.url}\n   ${result.snippet}`)
+        .join("\n\n");
     },
   },
 };
