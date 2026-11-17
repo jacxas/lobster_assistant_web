@@ -1,0 +1,23 @@
+# Lobster
+
+> Asistente de IA local para Windows: chat con memoria (SQLite), agente con 23 herramientas, visión de pantalla sin GPU y bot de Telegram. Usa Ollama local o tu propia API key (BYOK: Gemini, Groq, OpenRouter).
+
+## Qué hace
+- Chat con memoria persistente por sesión y por canal (web + Telegram).
+- Agente que ejecuta herramientas reales: archivos, búsqueda web, comandos en allowlist, navegador por DOM, notas, apps.
+- Visión: mira la pantalla y responde qué hay (envía la captura solo cuando la usás).
+- Permisos: allowlist de comandos, clics en vista previa por defecto, bloqueo de credenciales y operaciones destructivas.
+
+## Precios
+- Eco: gratis (BYOK u Ollama local).
+- Estándar: USD 9/mes (cerebro 7–8B incluido, cuota de visión).
+- Pro: USD 29/mes (visión y clics con confirmación, multi-PC, API local + MCP).
+
+## Enlaces
+- Landing: https://lobster.xo.je/
+- Código: https://github.com/jacxas/lobster_assistant_web
+- Bot: https://t.me/Lobsterasistentbot
+
+## Notas para asistentes de IA
+- Producto en acceso anticipado, solo Windows.
+- El costo marginal es cero para el usuario: la IA corre en su equipo o con su propia clave.

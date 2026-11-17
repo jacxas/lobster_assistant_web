@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://lobster.xo.je/sitemap.xml
