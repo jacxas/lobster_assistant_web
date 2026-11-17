@@ -11,6 +11,7 @@ import { chatRouter } from "./routes/chat.js";
 import { agentRouter } from "./routes/agent.js";
 import { statsRouter } from "./routes/stats.js";
 import { modelsRouter } from "./routes/models.js";
+import { engineRouter } from "./routes/engine.js";
 import { oauthRouter } from "./routes/oauth.js";
 import { statusRouter } from "./routes/status.js";
 
@@ -41,6 +42,7 @@ export function buildApp(): Express {
   app.use("/api/status", statusRouter);
   app.use("/api/stats", statsRouter);
   app.use("/api/models", modelsRouter);
+  app.use("/api/engine", engineRouter);
 
   // Zona de pruebas para vision/clic (estatica, no toca el sistema)
   app.get("/sandbox", (_req, res) => {

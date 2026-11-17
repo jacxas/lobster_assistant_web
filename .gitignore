@@ -78,3 +78,9 @@ client/public/__manus__/version.json
 # WhatsApp session (baileys)
 auth_info_baileys/
 apps/bot/auth_info_baileys/
+
+# Motor local (binarios descargados, no versionar)
+apps/engine/*.zip
+apps/engine/*.exe
+apps/engine/*.dll
+apps/.data/models/
