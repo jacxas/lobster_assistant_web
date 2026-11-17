@@ -83,14 +83,18 @@ const fileSize = async (filePath: string): Promise<number | null> => {
  * Descarga un modelo a `destDir` de forma reanudable (Range) y verifica sha256.
  * Si el archivo final ya existe y el hash coincide, no descarga nada.
  */
-export async function downloadModel(entry: ModelEntry, destDir: string, options: DownloadOptions = {}): Promise<string> {
+export async function downloadModel(
+  entry: { id: string; url: string; sha256?: string; sizeBytes?: number },
+  destDir: string,
+  options: DownloadOptions = {}
+): Promise<string> {
   await mkdir(destDir, { recursive: true });
   const finalPath = path.join(destDir, `${entry.id}.gguf`);
   const partPath = `${finalPath}.part`;
 
   const existingSize = await fileSize(finalPath);
   if (existingSize !== null) {
-    if ((await sha256File(finalPath)) === entry.sha256) return finalPath;
+    if (!entry.sha256 || (await sha256File(finalPath)) === entry.sha256) return finalPath;
     await rm(finalPath, { force: true });
   }
 
@@ -121,7 +125,7 @@ export async function downloadModel(entry: ModelEntry, destDir: string, options:
   }
 
   const hash = await sha256File(partPath);
-  if (hash !== entry.sha256) {
+  if (entry.sha256 && hash !== entry.sha256) {
     await rm(partPath, { force: true });
     throw new Error(`hash inválido para ${entry.id}: esperado ${entry.sha256.slice(0, 12)}…, obtenido ${hash.slice(0, 12)}…`);
   }

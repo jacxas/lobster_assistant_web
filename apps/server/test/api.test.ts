@@ -43,6 +43,24 @@ describe("api", () => {
     expect([200, 502]).toContain(res.status);
   });
 
+  it("GET /api/models devuelve el catálogo curado con estado local", async () => {
+    const res = await fetch(`${base}/api/models`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(Array.isArray(body.models)).toBe(true);
+    expect(body.models.length).toBeGreaterThanOrEqual(3);
+    for (const model of body.models) {
+      expect(typeof model.id).toBe("string");
+      expect(model.url).toMatch(/^https:\/\//);
+      expect(typeof model.installed).toBe("boolean");
+    }
+  });
+
+  it("DELETE /api/models/:id desconocido responde 404", async () => {
+    const res = await fetch(`${base}/api/models/no-existe`, { method: "DELETE" });
+    expect(res.status).toBe(404);
+  });
+
   it("POST /api/chat /cangrejo activa el modo y /normal lo desactiva", async () => {
     const send = async (message: string) => {
       const res = await fetch(`${base}/api/chat`, {
