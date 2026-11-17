@@ -1,5 +1,5 @@
 import { DEFAULT_MODEL as SHARED_DEFAULT_MODEL, DEFAULT_MAX_RESPONSE_LENGTH } from "@lobster/shared";
-import { CLOUD_ENABLED, cloudChat } from "./llm.js";
+import { cloudChat, cloudEnabled } from "./llm.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || SHARED_DEFAULT_MODEL;
@@ -103,7 +103,7 @@ export async function chat(
   model = DEFAULT_MODEL,
   signal?: AbortSignal
 ): Promise<string> {
-  if (CLOUD_ENABLED) {
+  if (cloudEnabled()) {
     try {
       const numPredict = resolveNumPredict();
       return await cloudChat(

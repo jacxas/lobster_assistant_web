@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { readdir, readFile } from "node:fs/promises";
 import { DEFAULT_MODEL } from "@lobster/shared";
-import { CLOUD_ENABLED, VISION_MODEL, cloudChat, cloudCompletion, fetchWithRetry } from "./llm.js";
+import { VISION_MODEL, cloudChat, cloudCompletion, cloudEnabled, fetchWithRetry, getBrain } from "./llm.js";
 import { browserClick, browserClose, browserOpen, browserRead, browserType } from "./browser.js";
 import { searchWeb } from "./search.js";
 import { deleteNote, listNotes, saveNote } from "./notes.js";
@@ -128,11 +128,13 @@ function overlayGrid(): Promise<void> {
 
 /** Pregunta a un modelo de visión (OpenRouter) sobre la última captura. */
 async function askVision(question: string, imagePath: string = SCREENSHOT_PATH, signal?: AbortSignal): Promise<string> {
-  if (!CLOUD_ENABLED) throw new Error("la visión necesita LLM_API_KEY (no hay VLM local viable en esta PC)");
+  if (!cloudEnabled()) throw new Error("la visión necesita LLM_API_KEY (no hay VLM local viable en esta PC)");
+  const visionModel = getBrain().visionModel;
+  if (!visionModel) throw new Error("el cerebro local no tiene visión: cambiá a la nube para mirar la pantalla");
   const base64 = (await readFile(imagePath)).toString("base64");
   const data = await cloudCompletion(
     {
-      model: VISION_MODEL,
+      model: visionModel,
       messages: [
         {
           role: "user",
@@ -589,7 +591,7 @@ async function callCloud(messages: { role: string; content: string }[], signal?:
 }
 
 const defaultBrain: AgentBrain = async (messages, signal) => {
-  if (!CLOUD_ENABLED) return callOllama(messages, signal);
+  if (!cloudEnabled()) return callOllama(messages, signal);
   try {
     return await callCloud(messages, signal);
   } catch (error) {

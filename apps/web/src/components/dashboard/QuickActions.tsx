@@ -49,7 +49,7 @@ export function QuickActions({ onNavigate }: { onNavigate: (id: string) => void 
     },
     {
       label: "Modelos",
-      desc: "Ollama y proveedores",
+      desc: "Motor local y nube",
       icon: Layers,
       run: () => onNavigate("models"),
       accent: "text-violet-300",

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import db from "../db/client.js";
 import { TOOLS, MAX_STEPS } from "../services/agent.js";
-import { CLOUD_ENABLED, CLOUD_MODEL, VISION_MODEL } from "../services/llm.js";
+import { cloudEnabled, getBrain } from "../services/llm.js";
 
 export const statsRouter: Router = Router();
 
@@ -42,9 +42,9 @@ statsRouter.get("/", (_req, res) => {
     recent,
     agent: {
       allowClicks: process.env.AGENT_ALLOW_CLICKS === "1",
-      visionModel: VISION_MODEL,
-      model: CLOUD_MODEL,
-      cloud: CLOUD_ENABLED,
+      visionModel: getBrain().visionModel,
+      model: getBrain().model,
+      cloud: cloudEnabled(),
       maxSteps: MAX_STEPS,
       tools: Object.keys(TOOLS).length,
     },

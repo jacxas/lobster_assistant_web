@@ -12,6 +12,37 @@ export const VISION_MODEL =
   process.env.LLM_VISION_MODEL || process.env.AGENT_VISION_MODEL || "nvidia/nemotron-3.5-super-vl:free";
 export const CLOUD_ENABLED = Boolean(CLOUD_KEY);
 
+// ── Override en caliente (selector de cerebro del panel) ──
+export interface BrainConfig {
+  mode: "cloud" | "local";
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  visionModel: string;
+}
+
+let override: BrainConfig | null = null;
+
+/** Configuración efectiva del cerebro (override del panel o variables de entorno). */
+export function getBrain(): BrainConfig {
+  if (override) return override;
+  return { mode: "cloud", baseUrl: CLOUD_BASE, apiKey: CLOUD_KEY, model: CLOUD_MODEL, visionModel: VISION_MODEL };
+}
+
+/** Cambia el cerebro en caliente: modo local (motor propio) o nube. */
+export function setBrain(config: BrainConfig): void {
+  override = config;
+}
+
+/** Vuelve a la configuración de entorno (nube por defecto). */
+export function clearBrain(): void {
+  override = null;
+}
+
+export function cloudEnabled(): boolean {
+  return Boolean(getBrain().apiKey);
+}
+
 /** fetch con reintentos ante 429/5xx y errores de red (tiers gratuitos). */
 export async function fetchWithRetry(url: string, init: RequestInit, retries = 2): Promise<Response> {
   let lastError: unknown;
@@ -41,11 +72,12 @@ export async function cloudCompletion(
   payload: Record<string, unknown>,
   signal?: AbortSignal
 ): Promise<{ choices?: CloudChoice[] }> {
-  if (!CLOUD_KEY) throw new Error("sin LLM_API_KEY configurada");
-  const res = await fetchWithRetry(`${CLOUD_BASE}/chat/completions`, {
+  const brain = getBrain();
+  if (!brain.apiKey) throw new Error("sin LLM_API_KEY configurada");
+  const res = await fetchWithRetry(`${brain.baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${CLOUD_KEY}`,
+      Authorization: `Bearer ${brain.apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": "http://localhost:5173",
       "X-Title": "Lobster",
@@ -63,9 +95,10 @@ export async function cloudChat(
   opts: { temperature?: number; maxTokens?: number; model?: string } = {},
   signal?: AbortSignal
 ): Promise<string> {
+  const brain = getBrain();
   const data = await cloudCompletion(
     {
-      model: opts.model || CLOUD_MODEL,
+      model: opts.model || brain.model,
       messages,
       temperature: opts.temperature ?? 0.2,
       ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),

@@ -61,6 +61,34 @@ describe("api", () => {
     expect(res.status).toBe(404);
   });
 
+  it("GET /api/brain devuelve el cerebro activo", async () => {
+    const res = await fetch(`${base}/api/brain`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(["cloud", "local"]).toContain(body.mode);
+    expect(typeof body.engine.running).toBe("boolean");
+    expect(Array.isArray(body.downloaded)).toBe(true);
+  });
+
+  it("POST /api/brain con modelo local inexistente responde 400", async () => {
+    const res = await fetch(`${base}/api/brain`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "local", modelId: "no-existe" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("POST /api/brain mode=cloud responde ok", async () => {
+    const res = await fetch(`${base}/api/brain`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "cloud" }),
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()).mode).toBe("cloud");
+  });
+
   it("POST /api/chat /cangrejo activa el modo y /normal lo desactiva", async () => {
     const send = async (message: string) => {
       const res = await fetch(`${base}/api/chat`, {

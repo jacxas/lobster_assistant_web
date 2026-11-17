@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import AssistantChat from "@/components/chat/AssistantChat";
 import { Link } from "wouter";
 import { Dashboard } from "@/components/dashboard/Dashboard";
+import ModelsPanel from "@/components/models/ModelsPanel";
 import { Activity, Bot, ChevronRight, FolderOpen, Gauge, LayoutDashboard, MessageSquare, Moon, MoreHorizontal, Network, Search, Settings, Terminal, Wifi, Zap } from "lucide-react";
 
 type AppId = "home" | "assistant" | "models" | "channels" | "files" | "system" | "setup" | "settings";
@@ -164,12 +165,12 @@ export default function DesktopShell() {
         <main className="min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle_at_70%_10%,rgba(249,115,22,.07),transparent_30%),linear-gradient(180deg,#0d0d10_0%,#09090b_100%)]">
           <div className="mx-auto max-w-[1400px] p-5 md:p-7">
             <div className="mb-6 flex items-center gap-3"><div className="rounded-lg border border-white/8 bg-white/5 p-2 text-orange-300"><ActiveIcon className="h-4 w-4" /></div><div><p className="text-[10px] uppercase tracking-[.2em] text-white/25">Lobster Workspace</p><h1 className="text-lg font-semibold text-white">{apps[active].title}</h1></div></div>
-            {active === "home" ? <Dashboard onNavigate={(id) => open(id as AppId)} /> : active === "assistant" ? <AssistantChat /> : <AppPanel id={active} />}
+            {active === "home" ? <Dashboard onNavigate={(id) => open(id as AppId)} /> : active === "assistant" ? <AssistantChat /> : active === "models" ? <ModelsPanel /> : <AppPanel id={active} />}
           </div>
         </main>
       </div>
 
-      <footer className="flex h-9 shrink-0 items-center gap-4 border-t border-white/10 bg-[#0d0d10] px-4 text-[10px] text-white/30"><span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Online</span><span>Ollama</span><span>CPU 12%</span><span>RAM 34%</span><span className="ml-auto">Lobster OS · v2 desktop</span></footer>
+      <footer className="flex h-9 shrink-0 items-center gap-4 border-t border-white/10 bg-[#0d0d10] px-4 text-[10px] text-white/30"><span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Online</span><span>Motor</span><span>CPU 12%</span><span>RAM 34%</span><span className="ml-auto">Lobster OS · v2 desktop</span></footer>
     </div>
 
     {showCommand && <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-6 pt-[12vh] backdrop-blur-sm" onClick={() => setShowCommand(false)}><div className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#151519] p-3 shadow-2xl" onClick={(e) => e.stopPropagation()}><div className="flex items-center gap-2 border-b border-white/8 px-3 pb-3"><Search className="h-4 w-4 text-white/30" /><span className="text-sm text-white/40">Command palette</span></div><div className="space-y-1 pt-2">{Object.entries(apps).filter(([id]) => id !== "home").map(([id, item]) => <button key={id} onClick={() => open(id as AppId)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-white/60 hover:bg-white/5 hover:text-white"><item.icon className="h-4 w-4" />{item.title}<span className="ml-auto text-[10px] text-white/20">Open</span></button>)}</div></div></div>}
