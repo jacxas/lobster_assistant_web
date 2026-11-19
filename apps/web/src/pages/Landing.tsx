@@ -99,7 +99,7 @@ const PLANS = [
       "Visión incluida (tu proveedor)",
       "Bot de Telegram",
     ],
-    cta: "Empezar gratis",
+    cta: "Empezar gratis por Telegram",
     highlight: false,
   },
   {
@@ -115,7 +115,7 @@ const PLANS = [
       "Sandbox + historial ilimitado",
       "Soporte prioritario",
     ],
-    cta: "Probar 14 días",
+    cta: "Consultar disponibilidad",
     highlight: true,
   },
   {
@@ -131,7 +131,7 @@ const PLANS = [
       "API local + MCP para tus propias tools",
       "Instalador white-label",
     ],
-    cta: "Hablar con ventas",
+    cta: "Hablar con el equipo",
     highlight: false,
   },
 ];
@@ -367,6 +367,10 @@ export default function Landing() {
           <p className="text-center text-xs text-white/30">
             Precios de lanzamiento con IVA aparte. Los planes con nube incluyen una cuota mensual; el excedente se cobra
             por uso o se cubre con tu propia clave.
+          </p>
+          <p className="text-center text-xs text-white/25">
+            El cobro todavía no está habilitado: durante el acceso anticipado, los planes pagos se coordinan por
+            Telegram. El plan Eco es gratis de verdad.
           </p>
         </section>
 
