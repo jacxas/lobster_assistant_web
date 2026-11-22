@@ -1,7 +1,7 @@
 import "./env.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express, { type Express, type Request, type Response } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -61,9 +61,11 @@ export function buildApp(): Express {
     res.sendFile(path.join(staticPath, "index.html"));
   });
 
-  // Error handling
-  app.use((err: any, _req: Request, res: Response) => {
+  // Error handling — Express exige 4 parámetros para reconocer un
+  // middleware de errores; con 3 lo trata como ruta normal y rompe.
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     console.error("Error:", err);
+    if (res.headersSent) return;
     res.status(500).json({ error: "Internal server error" });
   });
 

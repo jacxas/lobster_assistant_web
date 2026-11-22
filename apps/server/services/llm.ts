@@ -2,9 +2,22 @@
 // y funciona con OpenRouter, Google AI Studio (Gemini), Groq, Cerebras o Cloudflare.
 const stripTrailing = (url: string) => url.replace(/\/+$/, "");
 
-export const CLOUD_BASE = stripTrailing(
-  process.env.LLM_BASE_URL || "https://openrouter.ai/api/v1"
-);
+// Un valor mal escrito (p. ej. la cadena literal "%LLM_BASE_URL%" de un .bat
+// sin expandir) rompe todas las llamadas al modelo. Si no es una URL http(s)
+// válida, se ignora y se usa el proveedor por defecto.
+const urlOr = (value: string | undefined, fallback: string): string => {
+  const raw = (value || "").trim();
+  if (!raw) return fallback;
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? stripTrailing(raw) : fallback;
+  } catch {
+    console.warn(`[llm] LLM_BASE_URL inválida (${raw}); uso ${fallback}`);
+    return fallback;
+  }
+};
+
+export const CLOUD_BASE = urlOr(process.env.LLM_BASE_URL, "https://openrouter.ai/api/v1");
 export const CLOUD_KEY = process.env.LLM_API_KEY || process.env.OPENROUTER_API_KEY || "";
 export const CLOUD_MODEL =
   process.env.LLM_MODEL || process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free";
