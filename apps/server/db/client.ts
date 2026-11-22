@@ -5,11 +5,13 @@ import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// In production use /app/data (Docker volume), in dev use local .data/
+// In production use DATA_DIR or /app/data (Docker volume) when it exists;
+// on Windows/local production falls back to the repo's .data directory.
+const dockerData = "/app/data";
 const dataDir =
   process.env.DATA_DIR ||
-  (process.env.NODE_ENV === "production"
-    ? "/app/data"
+  (process.env.NODE_ENV === "production" && fs.existsSync("/app")
+    ? dockerData
     : path.resolve(__dirname, "../../.data"));
 
 fs.mkdirSync(dataDir, { recursive: true });

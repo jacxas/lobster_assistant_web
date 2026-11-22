@@ -84,3 +84,7 @@ apps/engine/*.zip
 apps/engine/*.exe
 apps/engine/*.dll
 apps/.data/models/
+
+# Builds de produccion
+apps/server/dist/
+apps/server/public/

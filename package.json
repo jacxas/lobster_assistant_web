@@ -13,6 +13,7 @@
     "dev:server": "turbo run dev --filter=@lobster/server",
     "dev:bot": "turbo run dev --filter=@lobster/bot",
     "build": "turbo run build",
+    "build:prod": "pnpm --filter @lobster/shared build && pnpm --filter @lobster/web build && pnpm --filter @lobster/server build && node scripts/preparar-produccion.mjs",
     "start": "turbo run start",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
