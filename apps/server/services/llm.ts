@@ -92,7 +92,7 @@ export async function cloudCompletion(
 /** Chat de texto simple sobre el proveedor configurado. */
 export async function cloudChat(
   messages: { role: string; content: unknown }[],
-  opts: { temperature?: number; maxTokens?: number; model?: string } = {},
+  opts: { temperature?: number; maxTokens?: number; model?: string; jsonMode?: boolean } = {},
   signal?: AbortSignal
 ): Promise<string> {
   const brain = getBrain();
@@ -102,6 +102,9 @@ export async function cloudChat(
       messages,
       temperature: opts.temperature ?? 0.2,
       ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
+      // En modo local forzamos JSON válido: los modelos chicos se pierden
+      // con las 23 herramientas y rompen el protocolo del agente.
+      ...(opts.jsonMode ? { response_format: { type: "json_object" } } : {}),
     },
     signal
   );

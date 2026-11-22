@@ -587,7 +587,7 @@ async function callOllama(messages: { role: string; content: string }[], signal?
 }
 
 async function callCloud(messages: { role: string; content: string }[], signal?: AbortSignal): Promise<string> {
-  return cloudChat(messages, { temperature: 0.2 }, signal);
+  return cloudChat(messages, { temperature: 0.2, jsonMode: getBrain().mode === "local" }, signal);
 }
 
 const defaultBrain: AgentBrain = async (messages, signal) => {
