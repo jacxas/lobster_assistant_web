@@ -203,19 +203,19 @@ export default function AssistantChat() {
 
   return (
     <div className="mx-auto flex h-[calc(100vh-13.5rem)] min-h-[540px] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] shadow-2xl shadow-black/20 backdrop-blur-xl">
-      <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-orange-400/10 p-2 text-orange-300">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-3 sm:px-5 sm:py-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="shrink-0 rounded-xl bg-orange-400/10 p-2 text-orange-300">
             <Bot className="h-4 w-4" />
           </div>
-          <div>
-            <h2 className="text-sm font-semibold tracking-wide text-white">Lobster Assistant</h2>
-            <p className="text-[11px] text-white/35">
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-semibold tracking-wide text-white">Lobster Assistant</h2>
+            <p className="truncate text-[11px] text-white/35">
               {brain?.mode === "local" ? "local · 100% en tu PC" : "nube gratuita · privado"}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <BrainSelector onChanged={setBrain} />
         <Button
           variant="ghost"
@@ -228,7 +228,7 @@ export default function AssistantChat() {
             agentMode && "border-orange-400/40 bg-orange-400/10 text-orange-300"
           )}
         >
-          <Bot className="h-3.5 w-3.5" /> Agente {agentMode ? "ON" : "OFF"}
+          <Bot className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Agente</span> {agentMode ? "ON" : "OFF"}
         </Button>
         <Button
           variant="ghost"
@@ -238,7 +238,7 @@ export default function AssistantChat() {
           title="Borrar historial"
           className="rounded-lg border border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white disabled:opacity-40"
         >
-          <Trash2 className="h-3.5 w-3.5" /> Borrar historial
+          <Trash2 className="h-3.5 w-3.5" /> <span className="hidden md:inline">Borrar historial</span>
         </Button>
         </div>
       </div>

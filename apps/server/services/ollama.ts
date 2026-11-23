@@ -1,5 +1,5 @@
 import { DEFAULT_MODEL as SHARED_DEFAULT_MODEL, DEFAULT_MAX_RESPONSE_LENGTH } from "@lobster/shared";
-import { cloudChat, cloudEnabled } from "./llm.js";
+import { cloudChat, cloudEnabled, getBrain } from "./llm.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || SHARED_DEFAULT_MODEL;
@@ -34,66 +34,118 @@ export async function checkOllama(): Promise<{ ok: boolean; models: string[] }> 
   }
 }
 
-/** Stream a chat completion from Ollama */
+/** Modelo a usar: el que pida el cliente o el del cerebro activo. */
+const resolverModelo = (model?: string): string => {
+  const brain = getBrain();
+  if (!model || model === DEFAULT_MODEL || model === "local") return brain.model;
+  return model;
+};
+
+/**
+ * Streaming de chat contra el cerebro activo (protocolo OpenAI: nube o motor
+ * propio). Antes hablaba solo con Ollama, que ya no se usa: el chat del panel
+ * devolvía "fetch failed" con ECONNREFUSED en :11434.
+ */
 export async function streamChat(
   messages: ChatMessage[],
-  model = DEFAULT_MODEL,
+  model: string | undefined = undefined,
   onChunk: (text: string) => void,
   onDone: () => void,
   onError: (err: Error) => void,
   signal?: AbortSignal
 ) {
-  try {
-    const payload: Record<string, unknown> = { model, messages, stream: true };
-    const numPredict = resolveNumPredict();
-    if (Number.isInteger(numPredict) && numPredict > 0) {
-      payload.options = { num_predict: numPredict };
-    }
+  const brain = getBrain();
+  const numPredict = resolveNumPredict();
 
-    const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
+  try {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (brain.apiKey) headers.Authorization = `Bearer ${brain.apiKey}`;
+
+    const res = await fetch(`${brain.baseUrl}/chat/completions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      headers,
+      body: JSON.stringify({
+        model: resolverModelo(model),
+        messages,
+        stream: true,
+        temperature: 0.6,
+        ...(Number.isInteger(numPredict) && numPredict > 0 ? { max_tokens: numPredict } : {}),
+      }),
       signal,
     });
 
     if (!res.ok || !res.body) {
-      throw new Error(`Ollama error: ${res.status} ${res.statusText}`);
+      throw new Error(`Proveedor ${res.status} ${res.statusText}`.trim());
+    }
+
+    // Algunos proveedores ignoran stream:true y devuelven JSON completo.
+    const tipo = res.headers.get("content-type") || "";
+    if (!tipo.includes("event-stream")) {
+      const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+      const texto = data.choices?.[0]?.message?.content || "";
+      if (texto) onChunk(texto);
+      onDone();
+      return;
     }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let sawDone = false;
+    let terminado = false;
 
-    const consumeLine = (line: string): boolean => {
-      if (!line.trim()) return false;
+    const consumirLinea = (line: string): void => {
+      const limpia = line.trim();
+      if (!limpia.startsWith("data:")) return;
+      const payload = limpia.slice(5).trim();
+      if (!payload || payload === "[DONE]") return;
       try {
-        const chunk = JSON.parse(line) as OllamaStreamChunk;
-        if (chunk.message?.content) onChunk(chunk.message.content);
-        if (chunk.done) return true;
-      } catch { /* skip malformed lines */ }
-      return false;
+        const chunk = JSON.parse(payload) as { choices?: { delta?: { content?: string } }[] };
+        const texto = chunk.choices?.[0]?.delta?.content;
+        if (texto) onChunk(texto);
+      } catch {
+        /* línea malformada: se ignora */
+      }
     };
 
-    // Line-buffered: an NDJSON line can be split across TCP reads,
-    // and a multibyte char can be split across chunks.
-    while (true) {
+    while (!terminado) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      let newlineIdx = buffer.indexOf("\n");
-      while (newlineIdx >= 0) {
-        if (consumeLine(buffer.slice(0, newlineIdx))) { sawDone = true; break; }
-        buffer = buffer.slice(newlineIdx + 1);
-        newlineIdx = buffer.indexOf("\n");
+      let idx = buffer.indexOf("\n");
+      while (idx >= 0) {
+        consumirLinea(buffer.slice(0, idx));
+        buffer = buffer.slice(idx + 1);
+        idx = buffer.indexOf("\n");
       }
-      if (sawDone) break;
+      if (signal?.aborted) {
+        terminado = true;
+      }
     }
-    if (!sawDone) consumeLine(buffer + decoder.decode());
+    if (buffer) consumirLinea(buffer + decoder.decode());
+    try {
+      await reader.cancel();
+    } catch {
+      /* ya cerrado */
+    }
     onDone();
   } catch (err) {
-    onError(err instanceof Error ? err : new Error(String(err)));
+    // Si el usuario cortó, no se reporta error: se conserva lo recibido.
+    if (signal?.aborted) {
+      onDone();
+      return;
+    }
+    // Sin streaming, intentamos una respuesta completa antes de rendirnos.
+    try {
+      const texto = await cloudChat(
+        messages,
+        { temperature: 0.6, ...(Number.isInteger(numPredict) && numPredict > 0 ? { maxTokens: numPredict } : {}) },
+        signal
+      );
+      if (texto) onChunk(texto);
+      onDone();
+    } catch (err2) {
+      onError(err2 instanceof Error ? err2 : new Error(String(err)));
+    }
   }
 }
 
