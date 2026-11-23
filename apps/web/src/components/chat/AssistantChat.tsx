@@ -5,25 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-
-// El API corre en :3000 y Vite en :5173 sin proxy de /api, así que las llamadas van
-// cross-origin; el server ya permite el origen http://localhost:5173 con credentials.
-const API_BASE = "http://localhost:3000";
+import { API_BASE } from "@/config";
+import BrainSelector, { type BrainState } from "./BrainSelector";
 
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string };
 
 const formatElapsed = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
-function EmptyState() {
+function EmptyState({ modo }: { modo: "cloud" | "local" }) {
   return (
     <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-4 text-center">
       <div className="rounded-2xl border border-orange-400/15 bg-orange-400/5 p-4 text-orange-300">
         <Bot className="h-7 w-7" />
       </div>
       <div>
-        <p className="text-sm font-medium text-white/70">Tu asistente local</p>
+        <p className="text-sm font-medium text-white/70">Tu asistente</p>
         <p className="mt-1 max-w-sm text-xs leading-5 text-white/35">
-          Escribe un mensaje para conversar con el modelo cargado en esta máquina. Nada sale de tu PC.
+          {modo === "local"
+            ? "El modelo corre en esta máquina y nada sale de tu PC."
+            : "Usa la nube gratuita configurada: el texto de tus mensajes viaja a ese proveedor. Cambiá a local con el selector de arriba para que nada salga de tu PC."}
         </p>
       </div>
     </div>
@@ -39,6 +39,7 @@ export default function AssistantChat() {
   const [error, setError] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [agentMode, setAgentMode] = useState(false);
+  const [brain, setBrain] = useState<BrainState | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const idRef = useRef(0);
@@ -209,9 +210,13 @@ export default function AssistantChat() {
           </div>
           <div>
             <h2 className="text-sm font-semibold tracking-wide text-white">Lobster Assistant</h2>
-            <p className="text-[11px] text-white/35">tinyllama · local · privado</p>
+            <p className="text-[11px] text-white/35">
+              {brain?.mode === "local" ? "local · 100% en tu PC" : "nube gratuita · privado"}
+            </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <BrainSelector onChanged={setBrain} />
         <Button
           variant="ghost"
           size="sm"
@@ -235,13 +240,14 @@ export default function AssistantChat() {
         >
           <Trash2 className="h-3.5 w-3.5" /> Borrar historial
         </Button>
+        </div>
       </div>
 
       <div ref={scrollRef} className="min-h-0 flex-1">
         <ScrollArea className="h-full">
           <div className="mx-auto w-full max-w-3xl space-y-4 p-5" role="log" aria-live="polite">
             {messages.length === 0 ? (
-              <EmptyState />
+              <EmptyState modo={brain?.mode ?? "cloud"} />
             ) : (
               messages.map((m) => (
                 <div key={m.id} className={cn("flex w-full gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
@@ -321,7 +327,9 @@ export default function AssistantChat() {
           )}
         </div>
         <p className="mx-auto mt-2 w-full max-w-3xl px-1 text-[10px] leading-4 text-white/30">
-          En esta PC las respuestas pueden tardar varios minutos (CPU antigua)
+          {brain?.mode === "local"
+            ? "Modelo local en CPU antigua: una respuesta puede tardar varios minutos."
+            : "Cerebro en la nube gratuita. Cambiá a un modelo local desde el selector de arriba."}
         </p>
       </div>
     </div>

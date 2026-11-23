@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import AssistantChat from "@/components/chat/AssistantChat";
 import { Link } from "wouter";
 import { Dashboard } from "@/components/dashboard/Dashboard";
@@ -142,6 +142,17 @@ export default function DesktopShell() {
   const visibleNav = useMemo(() => nav.filter((n) => n.label.toLowerCase().includes(search.toLowerCase())), [search]);
   const ActiveIcon = apps[active].icon;
   const open = (id: AppId) => { setActive(id); setShowCommand(false); };
+
+  // Permite que cualquier componente pida abrir una app (p. ej. el selector de
+  // cerebro enviando "models" cuando no hay modelos descargados).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (id) setActive(id as AppId);
+    };
+    window.addEventListener("lobster:navigate", handler as EventListener);
+    return () => window.removeEventListener("lobster:navigate", handler as EventListener);
+  }, []);
 
   return <div className="min-h-screen overflow-hidden bg-[#09090b] text-white">
     <div className="flex min-h-screen flex-col">

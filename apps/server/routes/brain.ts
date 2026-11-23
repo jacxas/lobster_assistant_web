@@ -41,6 +41,9 @@ brainRouter.post("/", async (req, res) => {
   const mode = req.body?.mode;
   if (mode === "cloud") {
     clearBrain();
+    // En una PC de 3,5 GB dejar el motor local vivo tras volver a la nube
+    // se come ~1 GB: se apaga para liberar memoria.
+    await localEngine.stop();
     res.json({ ok: true, mode: "cloud", model: getBrain().model });
     return;
   }

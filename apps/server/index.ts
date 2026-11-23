@@ -29,10 +29,25 @@ export function buildApp(): Express {
 
   const app = express();
 
-  app.use(cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
-    credentials: true,
-  }));
+  // CORS: en desarrollo el panel puede abrirse como localhost o 127.0.0.1
+  // (y a veces con la IP de la LAN); cualquier otro origen se rechaza.
+  const clientOrigins = (process.env.CLIENT_ORIGIN || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const localOrigin = /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
+  app.use(
+    cors({
+      origin(origin, callback) {
+        // Sin cabecera Origin (curl, mismo origen) se permite.
+        if (!origin) return callback(null, true);
+        if (localOrigin.test(origin) || clientOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`Origen no permitido: ${origin}`));
+      },
+      credentials: true,
+    })
+  );
   app.use(express.json());
   app.use(cookieParser());
 

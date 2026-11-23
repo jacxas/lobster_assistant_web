@@ -40,7 +40,7 @@ export function KpiRow({ stats }: { stats: DashboardStats | null }) {
     {
       label: "Modelo activo",
       value: stats ? shortModel(stats.agent.model) : "",
-      hint: stats?.agent.cloud ? "Cerebro en la nube" : "Cerebro local (Ollama)",
+      hint: stats?.agent.cloud ? "Cerebro en la nube" : "Motor propio (llama.cpp)",
       icon: Cpu,
       accent: "text-orange-300",
     },
@@ -61,7 +61,7 @@ export function KpiRow({ stats }: { stats: DashboardStats | null }) {
     {
       label: "Cerebro",
       value: stats ? (stats.agent.cloud ? "Nube" : "Local") : "",
-      hint: stats ? (stats.agent.cloud ? "API externa · tier gratis" : "Ollama · privado") : "",
+      hint: stats ? (stats.agent.cloud ? "API externa · tier gratis" : "llama.cpp · privado") : "",
       icon: stats?.agent.cloud ? Cloud : HardDrive,
       accent: "text-emerald-300",
     },
