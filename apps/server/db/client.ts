@@ -57,6 +57,13 @@ const MIGRATIONS_SQL = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(created_at);
+
+  -- Preferencias persistentes (cerebro elegido, etc.).
+  CREATE TABLE IF NOT EXISTS settings (
+    key        TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+  );
 `;
 
 /**

@@ -6,6 +6,7 @@ import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import { runMigrations } from "./db/schema.js";
+import { restoreSavedBrain } from "./services/brainState.js";
 import { generalLimiter } from "./middleware/rateLimit.js";
 import { chatRouter } from "./routes/chat.js";
 import { agentRouter } from "./routes/agent.js";
@@ -94,6 +95,9 @@ async function startServer() {
   const port = process.env.PORT || 3000;
   server.listen(port, () => {
     console.log(`🦞 Lobster server running on http://localhost:${port}/`);
+    // Restaura el cerebro elegido la última vez (nube por defecto). Si era el
+    // motor local, arranca y precalienta en segundo plano: no bloquea el API.
+    void restoreSavedBrain();
   });
 }
 

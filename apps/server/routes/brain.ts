@@ -4,6 +4,7 @@ import { stat } from "node:fs/promises";
 import { clearBrain, cloudEnabled, getBrain, setBrain } from "../services/llm.js";
 import { ENGINE_DIR, localEngine } from "../services/engine.js";
 import { warmupLocal, isWarming } from "../services/ollama.js";
+import { saveBrainPreference } from "../services/brainState.js";
 import { MODEL_CATALOG, findModel } from "../services/modelCatalog.js";
 
 const MODELS_DIR = process.env.LOBSTER_MODELS_DIR || path.resolve(ENGINE_DIR, "../.data/models");
@@ -46,6 +47,7 @@ brainRouter.post("/", async (req, res) => {
     // En una PC de 3,5 GB dejar el motor local vivo tras volver a la nube
     // se come ~1 GB: se apaga para liberar memoria.
     await localEngine.stop();
+    saveBrainPreference({ mode: "cloud" });
     res.json({ ok: true, mode: "cloud", model: getBrain().model });
     return;
   }
@@ -59,6 +61,7 @@ brainRouter.post("/", async (req, res) => {
     try {
       const url = await localEngine.start(modelFile(entry.id));
       setBrain({ mode: "local", baseUrl: url, apiKey: "local", model: entry.id, visionModel: "" });
+      saveBrainPreference({ mode: "local", modelId: entry.id });
       // En segundo plano: deja el prompt cacheado para que el primer mensaje
       // del usuario no pague los ~3 minutos de procesamiento inicial.
       void warmupLocal(url);
