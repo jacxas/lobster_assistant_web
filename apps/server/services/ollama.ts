@@ -83,7 +83,9 @@ export async function warmupLocal(baseUrl: string): Promise<void> {
         max_tokens: 1,
         temperature: 0,
       }),
-      signal: AbortSignal.timeout(240_000),
+      // Sin abort: si se corta a mitad, llama.cpp sigue procesando y el motor
+      // queda ocupado minutos, encolando los mensajes reales del usuario.
+      signal: AbortSignal.timeout(900_000),
     });
   } catch {
     /* el precalentado es best-effort: si falla, el primer mensaje solo tarda más */

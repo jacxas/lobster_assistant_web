@@ -22,7 +22,11 @@ export interface EngineArgsOptions {
 /** Argumentos de llama-server: silencioso, sin webui, con soporte de tools (--jinja). */
 export function buildEngineArgs(options: EngineArgsOptions): string[] {
   const port = options.port ?? ENGINE_PORT;
-  const threads = options.threads ?? Math.max(1, Math.floor(os.cpus().length / 2));
+  // Antes se usaba cpus/2: en una PC de 2 nucleos eso dejaba 1 hilo y la mitad
+  // de la CPU sin usar (medido: 0,12-0,24 tok/s). Ahora usa los nucleos reales,
+  // con techo de 4 para no ahogar a la interfaz.
+  const nucleos = os.cpus().length || 2;
+  const threads = options.threads ?? Math.max(1, Math.min(4, nucleos));
   const args = [
     "--model",
     options.modelPath,

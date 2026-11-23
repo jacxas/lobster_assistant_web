@@ -1,5 +1,5 @@
 // Catálogo curado de modelos locales (descarga bajo demanda, un perfil por tipo de PC).
-// Menos es más: 3 perfiles con rol claro. Las URLs se verifican con HEAD en el endpoint /api/models.
+// Menos es más: perfiles con rol claro. Las URLs se verifican con HEAD en el endpoint /api/models.
 export interface CatalogEntry {
   id: string;
   name: string;
@@ -14,6 +14,18 @@ export interface CatalogEntry {
 }
 
 export const MODEL_CATALOG: CatalogEntry[] = [
+  {
+    id: "eco-qwen05",
+    name: "Qwen 2.5 0.5B Instruct (Q4_K_M)",
+    role: "eco",
+    sizeBytes: 397_808_192,
+    ramGb: 1,
+    contextLength: 32768,
+    uncensored: false,
+    url: "https://huggingface.co/bartowski/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf",
+    notes:
+      "El más rápido en PCs de 3-4 GB y CPUs viejas (la mitad de peso que el 1B). Respuestas simples: sirve para frases cortas y tareas de una herramienta.",
+  },
   {
     id: "eco-qwen15",
     name: "Qwen 2.5 1.5B Instruct (Q4_K_M)",
