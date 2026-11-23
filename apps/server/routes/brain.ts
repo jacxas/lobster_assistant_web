@@ -3,6 +3,7 @@ import { Router } from "express";
 import { stat } from "node:fs/promises";
 import { clearBrain, cloudEnabled, getBrain, setBrain } from "../services/llm.js";
 import { ENGINE_DIR, localEngine } from "../services/engine.js";
+import { warmupLocal, isWarming } from "../services/ollama.js";
 import { MODEL_CATALOG, findModel } from "../services/modelCatalog.js";
 
 const MODELS_DIR = process.env.LOBSTER_MODELS_DIR || path.resolve(ENGINE_DIR, "../.data/models");
@@ -32,6 +33,7 @@ brainRouter.get("/", async (_req, res) => {
     baseUrl: brain.baseUrl,
     cloudAvailable: cloudEnabled(),
     engine: localEngine.status(),
+    warming: isWarming(),
     downloaded: await downloadedModels(),
   });
 });
@@ -57,6 +59,9 @@ brainRouter.post("/", async (req, res) => {
     try {
       const url = await localEngine.start(modelFile(entry.id));
       setBrain({ mode: "local", baseUrl: url, apiKey: "local", model: entry.id, visionModel: "" });
+      // En segundo plano: deja el prompt cacheado para que el primer mensaje
+      // del usuario no pague los ~3 minutos de procesamiento inicial.
+      void warmupLocal(url);
       res.json({ ok: true, mode: "local", model: entry.id, url });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });

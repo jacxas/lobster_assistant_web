@@ -328,7 +328,7 @@ export default function AssistantChat() {
         </div>
         <p className="mx-auto mt-2 w-full max-w-3xl px-1 text-[10px] leading-4 text-white/30">
           {brain?.mode === "local"
-            ? "Modelo local en CPU antigua: una respuesta puede tardar varios minutos."
+            ? "Motor local en CPU antigua: cada respuesta puede tardar 1-3 minutos (medido). Mejor pedidos cortos."
             : "Cerebro en la nube gratuita. Cambiá a un modelo local desde el selector de arriba."}
         </p>
       </div>

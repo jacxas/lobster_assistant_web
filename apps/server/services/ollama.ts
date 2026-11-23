@@ -1,12 +1,23 @@
-import { DEFAULT_MODEL as SHARED_DEFAULT_MODEL, DEFAULT_MAX_RESPONSE_LENGTH } from "@lobster/shared";
+import { DEFAULT_MODEL as SHARED_DEFAULT_MODEL, DEFAULT_MAX_RESPONSE_LENGTH, SYSTEM_PROMPT } from "@lobster/shared";
 import { cloudChat, cloudEnabled, getBrain } from "./llm.js";
 
 const OLLAMA_BASE = process.env.OLLAMA_URL || "http://localhost:11434";
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || SHARED_DEFAULT_MODEL;
 
+// En una CPU como la de esta PC el motor propio rinde ~0,15-0,35 tok/s: con el
+// tope por defecto (500) una respuesta tardaría ~45 min y parecería colgada.
+// En local se limita la salida para que conteste en 1-2 frases.
+const LOCAL_MAX_TOKENS = parseInt(process.env.LOCAL_MAX_TOKENS ?? "") || 48;
+
 /** num_predict cap sent to Ollama: OLLAMA_NUM_PREDICT env override or shared default */
 function resolveNumPredict(): number {
   return parseInt(process.env.OLLAMA_NUM_PREDICT ?? "") || DEFAULT_MAX_RESPONSE_LENGTH;
+}
+
+/** Tope de tokens de salida según el cerebro activo. */
+function resolveMaxTokens(): number {
+  const base = resolveNumPredict();
+  return getBrain().mode === "local" ? Math.min(base, LOCAL_MAX_TOKENS) : base;
 }
 
 export interface ChatMessage {
@@ -41,6 +52,46 @@ const resolverModelo = (model?: string): string => {
   return model;
 };
 
+let warming = false;
+
+/** true mientras el motor local está procesando el prompt inicial. */
+export function isWarming(): boolean {
+  return warming;
+}
+
+/** Instrucción extra cuando el cerebro es el motor local (CPU lenta). */
+export const LOCAL_BREVITY_PROMPT =
+  "Estás corriendo en una CPU muy lenta: responde en una sola frase corta (máximo 20 palabras) y sin listas.";
+
+/**
+ * Precalienta el caché de prompt del motor local.
+ * En esta CPU procesar el system prompt desde cero cuesta ~3 minutos; si se
+ * hace al cambiar a local, el primer mensaje real del usuario tarda segundos.
+ */
+export async function warmupLocal(baseUrl: string): Promise<void> {
+  warming = true;
+  try {
+    await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "local",
+        messages: [
+          { role: "system", content: `${SYSTEM_PROMPT}\n\n${LOCAL_BREVITY_PROMPT}` },
+          { role: "user", content: "hola" },
+        ],
+        max_tokens: 1,
+        temperature: 0,
+      }),
+      signal: AbortSignal.timeout(240_000),
+    });
+  } catch {
+    /* el precalentado es best-effort: si falla, el primer mensaje solo tarda más */
+  } finally {
+    warming = false;
+  }
+}
+
 /**
  * Streaming de chat contra el cerebro activo (protocolo OpenAI: nube o motor
  * propio). Antes hablaba solo con Ollama, que ya no se usa: el chat del panel
@@ -55,7 +106,7 @@ export async function streamChat(
   signal?: AbortSignal
 ) {
   const brain = getBrain();
-  const numPredict = resolveNumPredict();
+  const numPredict = resolveMaxTokens();
 
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -157,7 +208,7 @@ export async function chat(
 ): Promise<string> {
   if (cloudEnabled()) {
     try {
-      const numPredict = resolveNumPredict();
+      const numPredict = resolveMaxTokens();
       return await cloudChat(
         messages,
         {
@@ -167,13 +218,15 @@ export async function chat(
         signal
       );
     } catch (error) {
+      // Si el cerebro ES el motor local, no hay nada más a lo que caer.
+      if (getBrain().mode === "local" || signal?.aborted) throw error;
       if (process.env.AGENT_LOCAL_FALLBACK === "0") throw error;
-      console.warn("[chat] nube falló, cayendo a Ollama local:", error instanceof Error ? error.message : error);
+      console.warn("[chat] nube falló, cayendo a motor local:", error instanceof Error ? error.message : error);
     }
   }
 
   const payload: Record<string, unknown> = { model, messages, stream: true };
-  const numPredict = resolveNumPredict();
+  const numPredict = resolveMaxTokens();
   if (Number.isInteger(numPredict) && numPredict > 0) {
     payload.options = { num_predict: numPredict };
   }

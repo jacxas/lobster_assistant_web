@@ -44,7 +44,9 @@ statsRouter.get("/", (_req, res) => {
       allowClicks: process.env.AGENT_ALLOW_CLICKS === "1",
       visionModel: getBrain().visionModel,
       model: getBrain().model,
-      cloud: cloudEnabled(),
+      // cloud = cerebro en la nube. En modo local el motor propio guarda apiKey
+      // "local", así que cloudEnabled() daría true y el panel mentiría.
+      cloud: getBrain().mode === "cloud",
       maxSteps: MAX_STEPS,
       tools: Object.keys(TOOLS).length,
     },

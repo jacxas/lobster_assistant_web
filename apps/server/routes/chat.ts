@@ -4,7 +4,8 @@ import { SYSTEM_PROMPT as LOBSTER_PERSONA } from "@lobster/shared";
 import { CRAB_PROMPT, isCrab, setCrab } from "../services/persona.js";
 import { sessionMiddleware } from "../middleware/session.js";
 import { chatLimiter } from "../middleware/rateLimit.js";
-import { streamChat, chat, ChatMessage } from "../services/ollama.js";
+import { streamChat, chat, ChatMessage, LOCAL_BREVITY_PROMPT } from "../services/ollama.js";
+import { getBrain } from "../services/llm.js";
 import { saveMessage, getHistory, clearHistory } from "../db/messages.js";
 import { upsertSession } from "../db/sessions.js";
 
@@ -67,10 +68,17 @@ chatRouter.post("/", async (req: Request, res: Response) => {
     return;
   }
 
-  const dbHistory = clientHistory ? [] : getHistory(sessionId, 20);
+  const local = getBrain().mode === "local";
+  // En local el contexto se recorta: procesar 20 mensajes de historial en una
+  // CPU lenta suma minutos antes de la primera palabra.
+  const historyLimit = local ? 4 : 20;
+  const dbHistory = clientHistory ? [] : getHistory(sessionId, historyLimit);
   const history = clientHistory ?? dbHistory;
 
-  const systemPrompt = isCrab(sessionId) ? `${SYSTEM_PROMPT}\n\n${CRAB_PROMPT}` : SYSTEM_PROMPT;
+  const basePrompt = isCrab(sessionId) ? `${SYSTEM_PROMPT}\n\n${CRAB_PROMPT}` : SYSTEM_PROMPT;
+  // En local el modelo es chico y la CPU lenta: se fuerza brevedad para que la
+  // respuesta no tarde minutos (debe coincidir con el precalentado del motor).
+  const systemPrompt = local ? `${basePrompt}\n\n${LOCAL_BREVITY_PROMPT}` : basePrompt;
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
     ...history,

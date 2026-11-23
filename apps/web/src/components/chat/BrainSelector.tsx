@@ -18,6 +18,7 @@ export interface BrainState {
   cloudAvailable: boolean;
   engine: { running: boolean; url: string | null; port: number };
   downloaded: string[];
+  warming?: boolean;
 }
 
 /** Abre una app del escritorio (Models, System…) desde cualquier componente. */
@@ -54,6 +55,14 @@ export default function BrainSelector({ onChanged }: { onChanged?: (brain: Brain
   useEffect(() => {
     void cargar();
   }, [cargar]);
+
+  // Mientras el motor local precalienta el prompt, refrescar el estado cada 10 s
+  // para que el aviso desaparezca solo.
+  useEffect(() => {
+    if (!brain?.warming) return;
+    const id = window.setInterval(() => void cargar(), 10_000);
+    return () => window.clearInterval(id);
+  }, [brain?.warming, cargar]);
 
   // Cerrar al hacer clic fuera o con Escape.
   useEffect(() => {
@@ -112,6 +121,7 @@ export default function BrainSelector({ onChanged }: { onChanged?: (brain: Brain
       >
         {brain?.mode === "local" ? <Cpu className="h-3.5 w-3.5" /> : <Cloud className="h-3.5 w-3.5" />}
         <span className="max-w-[150px] truncate">{activo}</span>
+        {brain?.warming && <Loader2 className="h-3 w-3 animate-spin text-orange-300" />}
         <ChevronDown className={cn("h-3 w-3 opacity-60 transition", open && "rotate-180")} />
       </button>
 
@@ -193,6 +203,13 @@ export default function BrainSelector({ onChanged }: { onChanged?: (brain: Brain
                 </button>
               );
             })
+          )}
+
+          {brain?.warming && (
+            <p className="mx-1 mb-1 flex items-center gap-1.5 rounded-lg bg-orange-400/10 px-2 py-1.5 text-[10px] leading-4 text-orange-200/80">
+              <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+              Precalentando el prompt en el motor local (2-3 min). Si escribís ahora, la primera respuesta tarda más.
+            </p>
           )}
 
           {error && <p className="mt-1 rounded-lg bg-red-400/10 px-2 py-1.5 text-[10px] leading-4 text-red-300">{error}</p>}
