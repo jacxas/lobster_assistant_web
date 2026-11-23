@@ -1,55 +1,52 @@
 @echo off
-setlocal
+chcp 65001 >nul
 title Lobster Assistant
+setlocal
 cd /d "%~dp0"
-echo ============================================
-echo   Lobster Assistant - arranque local
-echo ============================================
 
-rem ── 1) Ollama (IA local, puerto 11434) ──
-netstat -ano | find "LISTENING" | find ":11434" >nul 2>&1
-if errorlevel 1 (
-  echo [1/4] Iniciando Ollama...
-  start "Ollama" /min cmd /c "ollama serve"
-) else (
-  echo [1/4] Ollama ya esta corriendo.
+echo  ============================================
+echo    Lobster Assistant
+echo  ============================================
+echo.
+
+if not exist "apps\server\dist\index.js" (
+    echo  [X] Todavia no esta compilado.
+    echo      Ejecuta primero: instalar.bat
+    echo.
+    pause
+    exit /b 1
 )
 
-rem ── 2) API (puerto 3000) ──
+rem ── 1) Panel + API en un solo proceso (puerto 3000) ──
 netstat -ano | find "LISTENING" | find ":3000" >nul 2>&1
 if errorlevel 1 (
-  echo [2/4] Iniciando API en puerto 3000...
-  start "Lobster API" /min cmd /c "cd /d %~dp0apps\server && pnpm dev"
+    echo  [1/2] Iniciando Lobster en http://localhost:3000 ...
+    start "Lobster" /min cmd /c "cd /d ""%~dp0"" && set NODE_ENV=production && node apps\server\dist\index.js"
 ) else (
-  echo [2/4] API ya esta corriendo.
+    echo  [1/2] Ya estaba corriendo en el puerto 3000.
 )
 
-rem ── 3) Web (puerto 5173) ──
-netstat -ano | find "LISTENING" | find ":5173" >nul 2>&1
-if errorlevel 1 (
-  echo [3/4] Iniciando Web en puerto 5173...
-  start "Lobster Web" /min cmd /c "cd /d %~dp0apps\web && pnpm dev"
-) else (
-  echo [3/4] Web ya esta corriendo.
-)
-
-rem ── 4) Bot (solo si esta configurado en apps\bot\.env) ──
+rem ── 2) Bot de Telegram (solo si hay token) ──
 if exist "apps\bot\.env" (
-  findstr /R /C:"TELEGRAM_TOKEN=." /C:"WHATSAPP_ENABLED=true" "apps\bot\.env" >nul 2>&1
-  if not errorlevel 1 (
-    echo [4/4] Iniciando Bot...
-    start "Lobster Bot" /min cmd /c "cd /d %~dp0apps\bot && pnpm dev"
-  ) else (
-    echo [4/4] Bot sin configurar: falta token o WhatsApp en apps\bot\.env
-  )
+    findstr /R /C:"TELEGRAM_TOKEN=[0-9]" "apps\bot\.env" >nul 2>&1
+    if not errorlevel 1 (
+        netstat -ano | find "LISTENING" >nul 2>&1
+        echo  [2/2] Iniciando bot de Telegram...
+        start "Lobster Bot" /min cmd /c "cd /d ""%~dp0apps\bot"" && node index.js"
+    ) else (
+        echo  [2/2] Bot sin token configurado (opcional).
+    )
 ) else (
-  echo [4/4] Bot sin configurar: no existe apps\bot\.env
+    echo  [2/2] Bot no configurado (opcional).
 )
 
-echo Esperando a que suban los servicios...
-timeout /t 15 /nobreak >nul
-start "" http://localhost:5173
 echo.
-echo Listo. El asistente abre en tu navegador.
-echo Para pararlo, cierra las ventanas minimizadas: Ollama, Lobster API, Lobster Web y Lobster Bot (si esta configurado).
+echo  Esperando que levante...
+timeout /t 6 /nobreak >nul
+start "" http://localhost:3000
+
+echo.
+echo  Listo. El panel esta en http://localhost:3000
+echo  Para apagarlo: cerra las ventanas minimizadas "Lobster" (y "Lobster Bot").
+echo.
 pause

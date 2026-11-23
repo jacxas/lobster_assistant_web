@@ -2,156 +2,126 @@
 chcp 65001 >nul
 title Lobster Assistant - Instalador
 color 0A
+setlocal
+cd /d "%~dp0"
 
 echo.
 echo  =====================================================
-echo   LOBSTER ASSISTANT - INSTALADOR AUTOMATICO (monorepo)
+echo   LOBSTER ASSISTANT - INSTALADOR
 echo  =====================================================
 echo.
-echo  Este script verifica e instala todo lo necesario.
-echo  Si algo ya esta instalado, lo saltea automaticamente.
+echo  Instala todo lo necesario. Si algo ya esta, lo saltea.
 echo.
 pause
 
-:: ─────────────────────────────────────────
-:: PASO 1 - Verificar Git
-:: ─────────────────────────────────────────
+rem ─────────────────────────────────────────
+rem  PASO 1 - Node.js
+rem ─────────────────────────────────────────
 echo.
-echo  [1/5] Verificando Git...
-git --version >nul 2>&1
-if %errorlevel% == 0 (
-    for /f "tokens=*" %%i in ('git --version') do set GIT_VER=%%i
-    echo  [OK] Git ya esta instalado: %GIT_VER%
-) else (
-    echo  [X] Git NO esta instalado.
-    echo.
-    echo  Abriendo la pagina de descarga de Git...
-    start https://git-scm.com/download/win
-    echo.
-    echo  Descarga e instala Git, luego CIERRA y vuelve a abrir este archivo.
-    echo.
-    pause
-    exit /b 1
-)
-
-:: ─────────────────────────────────────────
-:: PASO 2 - Verificar Node.js
-:: ─────────────────────────────────────────
-echo.
-echo  [2/5] Verificando Node.js...
+echo  [1/6] Verificando Node.js...
 node --version >nul 2>&1
-if %errorlevel% == 0 (
-    for /f "tokens=*" %%i in ('node --version') do set NODE_VER=%%i
-    echo  [OK] Node.js ya esta instalado: %NODE_VER%
-) else (
-    echo  [X] Node.js NO esta instalado.
+if errorlevel 1 (
+    echo  [X] Falta Node.js.
     echo.
-    echo  Abriendo la pagina de descarga de Node.js...
+    echo  Abriendo nodejs.org ... instala la version LTS y volve a ejecutar este archivo.
     start https://nodejs.org
-    echo.
-    echo  Descarga e instala Node.js LTS, luego CIERRA y vuelve a abrir este archivo.
-    echo.
     pause
     exit /b 1
 )
+for /f "tokens=*" %%i in ('node --version') do set NODE_VER=%%i
+echo  [OK] Node.js %NODE_VER%
 
-:: ─────────────────────────────────────────
-:: PASO 3 - Verificar Ollama
-:: ─────────────────────────────────────────
+rem ─────────────────────────────────────────
+rem  PASO 2 - pnpm
+rem ─────────────────────────────────────────
 echo.
-echo  [3/5] Verificando Ollama...
-ollama --version >nul 2>&1
-if %errorlevel% == 0 (
-    for /f "tokens=*" %%i in ('ollama --version') do set OLLAMA_VER=%%i
-    echo  [OK] Ollama ya esta instalado: %OLLAMA_VER%
-) else (
-    echo  [!] Ollama NO esta instalado (opcional para la web, requerido para la IA local).
-    echo.
-    echo  Abriendo la pagina de descarga de Ollama...
-    start https://ollama.ai/download
-    echo.
-    echo  Podes continuar sin Ollama y instalarlo despues.
-    echo.
-)
-
-:: ─────────────────────────────────────────
-:: PASO 4 - Instalar dependencias del proyecto (pnpm)
-:: ─────────────────────────────────────────
-echo.
-echo  [4/5] Preparando pnpm e instalando dependencias...
-
-if not exist "package.json" (
-    echo  [X] No se encuentra package.json
-    echo     Asegurate de ejecutar este archivo DENTRO de la carpeta del repositorio.
-    echo     Ejemplo: cd lobster_assistant_web
-    pause
-    exit /b 1
-)
-
-corepack enable >nul 2>&1
-
-if exist "node_modules" (
-    echo  [OK] node_modules ya existe, saltando pnpm install...
-) else (
-    echo  Instalando modulos con pnpm...
-    call pnpm install
-    if %errorlevel% neq 0 (
-        echo  [X] Error durante pnpm install. Revisa el mensaje de arriba.
+echo  [2/6] Preparando pnpm...
+call corepack enable >nul 2>&1
+call pnpm --version >nul 2>&1
+if errorlevel 1 (
+    echo  Instalando pnpm con npm...
+    call npm install -g pnpm
+    if errorlevel 1 (
+        echo  [X] No se pudo instalar pnpm.
         pause
         exit /b 1
     )
-    echo  [OK] Dependencias instaladas correctamente.
+)
+for /f "tokens=*" %%i in ('pnpm --version') do set PNPM_VER=%%i
+echo  [OK] pnpm %PNPM_VER%
+
+rem ─────────────────────────────────────────
+rem  PASO 3 - Dependencias
+rem ─────────────────────────────────────────
+echo.
+echo  [3/6] Instalando dependencias (puede tardar varios minutos)...
+if exist "node_modules" (
+    echo  [OK] node_modules ya existe, se saltea.
+) else (
+    call pnpm install
+    if errorlevel 1 (
+        echo  [X] Fallo pnpm install. Revisa el mensaje de arriba.
+        pause
+        exit /b 1
+    )
 )
 
-:: ─────────────────────────────────────────
-:: PASO 5 - Compilar paquetes + crear .env
-:: ─────────────────────────────────────────
+rem ─────────────────────────────────────────
+rem  PASO 4 - Compilar (modo produccion)
+rem ─────────────────────────────────────────
 echo.
-echo  [5/6] Compilando paquetes (shared, web, server)...
-call pnpm -r build
-if %errorlevel% neq 0 (
-    echo  [X] Error durante el build. Revisa el mensaje de arriba.
+echo  [4/6] Compilando panel + API...
+call pnpm build:prod
+if errorlevel 1 (
+    echo  [X] Fallo la compilacion.
     pause
     exit /b 1
 )
+echo  [OK] Compilado: el panel y el API van en un solo proceso.
 
+rem ─────────────────────────────────────────
+rem  PASO 5 - Configuracion (.env)
+rem ─────────────────────────────────────────
 echo.
-echo  [6/6] Creando archivo .env (configuracion)...
+echo  [5/6] Creando configuracion...
 if exist ".env" (
     echo  [OK] .env ya existe, no se toca.
 ) else (
     copy ".env.example" ".env" >nul
-    echo  [OK] .env creado a partir de .env.example
+    echo  [OK] .env creado.
     echo.
-    echo  IMPORTANTE: para que la IA responda necesitas una clave gratuita.
-    echo   1^) Abri https://aistudio.google.com y crea una API key
-    echo   2^) Ejecuta:  setx LLM_API_KEY "tu-key"
-    echo   3^) Cierra y volve a abrir este instalador (o el arrancar-lobster.bat)
+    echo  Para que la IA responda rapido necesitas una clave GRATIS:
+    echo    1^) Entra a https://aistudio.google.com y crea una API key
+    echo    2^) Ejecuta en esta ventana:  setx LLM_API_KEY "tu-clave"
+    echo    3^) Cerra esta ventana y volve a abrir Lobster
     echo.
-    echo   Sin clave igual funciona: cae a Ollama local (mas lento).
+    echo  Sin clave tambien funciona: usa el motor local (mas lento).
 )
 
-:: ─────────────────────────────────────────
-:: LISTO
-:: ─────────────────────────────────────────
+rem ─────────────────────────────────────────
+rem  PASO 6 - Motor local (opcional)
+rem ─────────────────────────────────────────
 echo.
-:: ─────────────────────────────────────────
-:: PASO FINAL - Arrancar
-:: ─────────────────────────────────────────
+echo  [6/6] Motor local (llama.cpp)...
+if exist "apps\engine\llama-server.exe" (
+    echo  [OK] El motor ya esta instalado.
+) else (
+    echo  [!] No esta el motor local. Es OPCIONAL: solo hace falta para
+    echo      usar la IA sin internet. Podes instalarlo despues con instalar-motor.bat
+)
+
+echo.
 echo  =====================================================
-echo   ¿Queres arrancar Lobster ahora? (S/N)
+echo   LISTO
 echo  =====================================================
-choice /C SN /N /M "  >> "
+echo.
+choice /C SN /N /M "  Arrancar Lobster ahora? (S/N) "
 if errorlevel 2 goto :fin
 call "%~dp0arrancar-lobster.bat"
+goto :eof
 
 :fin
 echo.
-echo  Comandos utiles (desde esta carpeta):
-echo.
-echo     pnpm setup      (primera vez: configurar los bots)
-echo     pnpm dev:web    (web en http://localhost:5173)
-echo     pnpm dev:server (API en http://localhost:3000)
-echo     pnpm dev:bot    (bots: Telegram/Discord/WhatsApp/Slack)
-echo.
+echo  Cuando quieras: doble clic en arrancar-lobster.bat
+echo  El panel abre en http://localhost:3000
 pause

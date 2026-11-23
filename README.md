@@ -1,98 +1,136 @@
-# 🦞 Lobster Assistant (Monorepo)
+# 🦞 Lobster Assistant
 
-> Your privacy-first AI assistant - now unified in a single repository.
+Asistente de IA que corre en **tu** computadora: chat, agente con herramientas, visión de pantalla y bot de Telegram. Sin suscripciones y sin que el proyecto pague tokens: usás una nube gratuita o un modelo local que corre en tu propia máquina.
 
-## What Changed
-
-This repository was migrated from a flat structure to a **pnpm workspace monorepo** to unify code across 4 related repos:
-- `lobster-assistant` (was empty)
-- `lobster_assistant_web` (this repo - main codebase)
-- `lobster_assist_web` (exact duplicate)
-- `lobster-assistant-web` (inaccessible)
-
-## New Structure
-
-```
-lobster-assistant/
-├── apps/
-│   ├── web/          # React + Vite frontend (was client/)
-│   ├── server/       # Express API + SQLite
-│   └── bot/          # WhatsApp, Discord, Telegram bots
-├── packages/
-│   └── shared/       # Types, constants, utilities shared across apps
-├── docs/             # Documentation
-├── docker-compose.yml
-├── package.json      # Workspace root
-├── pnpm-workspace.yaml
-└── turbo.json
-```
-
-## Quick Start
-
-```bash
-# Windows: doble clic en instalar.bat y sigue los pasos
-
-# Install pnpm (if you don't have it)
-npm install -g pnpm
-
-# Install all dependencies
-pnpm install
-
-# Start everything in dev mode
-pnpm dev
-
-# Or start individually:
-pnpm dev:web      # Frontend only (port 5173)
-pnpm dev:server   # API only (port 3000)
-pnpm dev:bot      # Bots only (requires .env with your tokens)
-```
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start all apps in dev mode via Turbo |
-| `pnpm build` | Build all apps for production |
-| `pnpm check` | Type-check all TypeScript code |
-| `pnpm setup` | Run interactive bot configuration wizard |
-| `pnpm db:migrate` | Run database migrations |
-
-## Docker
-
-```bash
-# Start all services (Ollama + Server + Bot)
-docker compose up -d
-
-# Or individually:
-docker compose up -d ollama   # AI model server
-docker compose up -d server   # API + web
-docker compose up -d bot      # Chat bots
-```
-
-## Bots
-
-Configura los tokens con el asistente interactivo:
-
-```bash
-pnpm setup   # genera apps/bot/.env (TELEGRAM_TOKEN, DISCORD_TOKEN, etc.)
-pnpm dev:bot
-```
-
-Los bots hablan con el server local (cerebro unificado + memoria en SQLite): arranca `pnpm dev:server` antes de `pnpm dev:bot`.
-
-WhatsApp muestra un código QR en la terminal la primera vez (escanéalo con la app).
-
-## Shared Package
-
-The `@lobster/shared` package contains:
-- **Types** (`ChatMessage`, `BotConfig`, `ChatSession`, etc.)
-- **Constants** (`COOKIE_NAME`, `SYSTEM_PROMPT`, `DEFAULT_MODEL`, etc.)
-- Used by `apps/web` and `apps/server`
-
-## License
-
-MIT - ¡EXFOLIAR! 🦞
+> Estado: **v1.0.0** — funciona en Windows. Probado en una AMD E-350 (2 núcleos, 3,5 GB RAM).
 
 ---
 
-Última actualización: 2026-10-24
+## Qué hace
+
+- **Chat** con streaming, historial por sesión y memoria entre mensajes.
+- **Agente con 23 herramientas**: leer/escribir archivos, ejecutar comandos de una allowlist, buscar en la web, abrir URLs, capturas de pantalla, portapapeles, notas y control del navegador por DOM (Playwright).
+- **Visión**: describe lo que hay en la pantalla.
+- **Dos cerebros intercambiables** desde el propio chat:
+  - **Nube gratuita** (Gemini / Groq / Cerebras / OpenRouter): rápido, necesita internet y una clave gratis.
+  - **Local** (motor propio `llama-server`, llama.cpp): sin internet, nada sale de tu PC, más lento.
+- **Bot de Telegram** opcional, con la misma personalidad y herramientas.
+- **Permisos por riesgo**: cada herramienta se clasifica en `low / medium / high / critical` y se resuelve como permitir, confirmar o bloquear. Incluye anti-secretos y anti-destructivos.
+
+---
+
+## Requisitos
+
+| | |
+|---|---|
+| Sistema | Windows 10/11 (64 bits) |
+| Node.js | 20 o superior (LTS) |
+| RAM | 4 GB recomendado (funciona con 3,5 GB; el modo local pide ~1 GB) |
+| Disco | ~1,5 GB con un modelo local |
+
+---
+
+## Instalación
+
+1. Descomprimí el ZIP en una carpeta (por ejemplo `C:\Lobster`).
+2. Doble clic en **`instalar.bat`**. Verifica Node, instala dependencias y compila.
+3. Para que la IA responda rápido, creá una clave **gratis** en [aistudio.google.com](https://aistudio.google.com) y ejecutá en una consola:
+
+   ```bat
+   setx LLM_API_KEY "tu-clave"
+   ```
+
+   (Cerrá y volvé a abrir la consola para que tome efecto.)
+
+4. Doble clic en **`arrancar-lobster.bat`** → se abre el panel en <http://localhost:3000>.
+
+**Sin clave** también funciona: cae al motor local, más lento.
+
+### Modo local (opcional)
+
+1. Doble clic en **`instalar-motor.bat`** (baja `llama-server.exe`).
+2. En el panel: **Models → descargar** un modelo.
+3. En el chat, chip del cerebro → elegir el modelo local.
+
+En una CPU vieja el modo local tarda **1-3 minutos por respuesta**. Es el precio de que nada salga de tu PC.
+
+---
+
+## Uso diario
+
+| Archivo | Para qué |
+|---|---|
+| `arrancar-lobster.bat` | Uso normal: panel + API en un solo proceso (`:3000`) |
+| `arrancar-desarrollo.bat` | Desarrollo: API con recarga (`:3000`) + panel Vite (`:5173`) |
+| `arrancar-produccion.bat` | Igual que el primero, recompilando si hace falta |
+| `instalar-motor.bat` | Instala el motor local (llama.cpp) |
+
+Los datos quedan en `apps\.data\` (base SQLite `lobster.db`, modelos `.gguf`). **No se suben a ningún lado.**
+
+### Bot de Telegram
+
+1. Creá un bot con [@BotFather](https://t.me/BotFather) y copiá el token.
+2. Pegalo en `apps\bot\.env` como `TELEGRAM_TOKEN=...`.
+3. `arrancar-lobster.bat` lo levanta solo.
+
+Comandos: `/cangrejo` activa un modo de habla crustáceo, `/normal` lo apaga.
+
+---
+
+## Configuración
+
+Todo por variables de entorno (o en `.env`, copiando `.env.example`):
+
+| Variable | Para qué |
+|---|---|
+| `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL` | Proveedor de nube (protocolo OpenAI) |
+| `LLM_VISION_MODEL` | Modelo para mirar imágenes |
+| `AGENT_MAX_STEPS` | Pasos máximos del agente (por defecto 8) |
+| `AGENT_ALLOW_CLICKS` | `1` habilita clics físicos del mouse (por defecto solo vista previa) |
+| `AGENT_BLOCKED_TOOLS` / `AGENT_TRUSTED_TOOLS` | Veto o confianza por herramienta |
+| `AGENT_STRICT_LOCAL` | `1` = sin red ni navegador |
+| `LOCAL_MAX_TOKENS` | Tope de salida del motor local (por defecto 48) |
+| `PORT` | Puerto del API (por defecto 3000) |
+
+---
+
+## Estructura
+
+```
+apps/
+  server/   API Express + SQLite (agente, herramientas, permisos, cerebros)
+  web/      Panel React + Vite
+  bot/      Bot de Telegram/Discord/Slack
+  engine/   llama-server.exe (motor local, llama.cpp)
+packages/
+  shared/   Tipos y prompt del sistema
+landing/    Sitio público (estático)
+scripts/    Utilidades (empaquetado, medición de latencia)
+```
+
+---
+
+## Problemas comunes
+
+**"fetch failed" en el chat** → el proveedor de nube no responde o la clave no está cargada. Revisá `LLM_API_KEY` y reiniciá.
+
+**El modo local tarda muchísimo** → normal en CPUs viejas: ~0,2 tokens/s. Usá respuestas cortas o volvé a la nube.
+
+**"Puerto 3000 en uso"** → ya hay otra instancia corriendo. Cerrá la ventana "Lobster" minimizada o cambiá `PORT`.
+
+**no arranca / falta compilar** → ejecutá `instalar.bat` otra vez.
+
+---
+
+## Límites conocidos (v1)
+
+- Solo Windows; el instalador es `.bat`.
+- El modo local es usable para frases cortas, no para conversaciones largas en hardware antiguo.
+- Requiere Node.js instalado (todavía no hay instalador autocontenido).
+- El agente no ejecuta acciones destructivas: pide confirmación o las bloquea según el motor de permisos.
+
+---
+
+## Autor
+
+JACXAS — proyecto Lobster. Licencia MIT (ver `LICENSE` si está incluida en la distribución).
