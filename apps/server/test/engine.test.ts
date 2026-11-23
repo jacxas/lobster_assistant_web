@@ -15,7 +15,8 @@ describe("buildEngineArgs", () => {
     expect(args).toContain("--no-webui");
     expect(args).toContain("--log-disable");
     const threads = Number(args[args.indexOf("--threads") + 1]);
-    expect(threads).toBe(Math.max(1, Math.floor(os.cpus().length / 2)));
+    // Todos los núcleos, con techo de 4 (antes cpus/2 dejaba 1 hilo en un dual-core).
+    expect(threads).toBe(Math.max(1, Math.min(4, os.cpus().length || 2)));
   });
 
   it("agrega --lora cuando hay adaptador", () => {
