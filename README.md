@@ -34,6 +34,18 @@ Asistente de IA que corre en **tu** computadora: chat, agente con herramientas, 
 
 ## Instalación
 
+Hay dos formas. La **portable** no necesita instalar nada (recomendada).
+
+### Opción A — Portable (sin Node instalado)
+
+1. Bajá **`lobster-portable-v1.0.0.zip`** (62 MB) desde [Releases](https://github.com/jacxas/lobster_assistant_web/releases/latest).
+2. Descomprimí la carpeta completa (no lo ejecutes desde adentro del ZIP).
+3. Doble clic en **`Lobster.exe`**.
+
+La primera vez pide una clave gratis (opcional); después abre el panel en <http://localhost:3000>. Trae su propio runtime Node, la API compilada y el motor local.
+
+### Opción B — Código fuente (requiere Node.js 20+)
+
 1. Descomprimí el ZIP en una carpeta (por ejemplo `C:\Lobster`).
 2. Doble clic en **`instalar.bat`**. Verifica Node, instala dependencias y compila.
 3. Para que la IA responda rápido, creá una clave **gratis** en [aistudio.google.com](https://aistudio.google.com) y ejecutá en una consola:
@@ -62,7 +74,8 @@ En una CPU vieja el modo local tarda **1-3 minutos por respuesta**. Es el precio
 
 | Archivo | Para qué |
 |---|---|
-| `arrancar-lobster.bat` | Uso normal: panel + API en un solo proceso (`:3000`) |
+| `Lobster.exe` (portable) | **Uso normal en la versión portable**: panel + API + motor, sin instalar nada |
+| `arrancar-lobster.bat` | Uso normal desde código fuente: panel + API en un solo proceso (`:3000`) |
 | `arrancar-desarrollo.bat` | Desarrollo: API con recarga (`:3000`) + panel Vite (`:5173`) |
 | `arrancar-produccion.bat` | Igual que el primero, recompilando si hace falta |
 | `instalar-motor.bat` | Instala el motor local (llama.cpp) |

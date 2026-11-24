@@ -8,6 +8,7 @@ Primera versión empaquetada. Funciona en Windows con nube gratuita o motor loca
 
 ### Agregado
 
+- **Versión portable sin Node** (`lobster-portable-v1.0.0.zip`, 62 MB): trae su propio runtime, la API compilada, las dependencias de producción y el motor local; se abre con `Lobster.exe`, pide la clave gratis la primera vez y permite detener el servidor desde su ventana.
 - **Panel completo**: dashboard con KPIs reales, chat con streaming, panel de modelos, wizard de instalación y landing pública.
 - **Agente con 23 herramientas**: archivos, comandos (allowlist), búsqueda web sin API key, URLs, capturas, portapapeles, notas, búsqueda de archivos, abrir apps y navegador controlado por DOM.
 - **Selector de cerebro en el chat**: nube gratuita o modelo local, sin salir de la conversación.
