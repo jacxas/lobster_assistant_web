@@ -1,5 +1,7 @@
 # 🦞 Lobster Assistant
 
+![Demo de Lobster: panel, chat, respuesta y cambio de cerebro](docs/demo.gif)
+
 Asistente de IA que corre en **tu** computadora: chat, agente con herramientas, visión de pantalla y bot de Telegram. Sin suscripciones y sin que el proyecto pague tokens: usás una nube gratuita o un modelo local que corre en tu propia máquina.
 
 > Estado: **v1.0.0** — funciona en Windows. Probado en una AMD E-350 (2 núcleos, 3,5 GB RAM).
