@@ -88,3 +88,6 @@ apps/.data/models/
 # Builds de produccion
 apps/server/dist/
 apps/server/public/
+
+# Copia de despliegue (la fuente esta en docs/demo.gif)
+landing/demo.gif
