@@ -17,6 +17,12 @@ COMO ARRANCAR
 
 Para cerrarlo: en la ventanita de Lobster, boton "Detener y salir".
 
+ACCESO DIRECTO EN EL ESCRITORIO
+------------------------------
+En la ventanita de Lobster hay un boton "Acceso directo": crea un icono
+"Lobster" en tu escritorio para abrirlo como cualquier otro programa.
+(Tambien podes arrastrar Lobster.exe al escritorio.)
+
 QUE HAY ADENTRO
 ---------------
 runtime\node.exe        Runtime incluido (no se instala nada en el sistema)

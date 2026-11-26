@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Windows.Forms;
 
@@ -24,8 +25,28 @@ namespace Lobster
         static Process server;
 
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
+            // Modo silencioso para automatizar/prbar: Lobster.exe --crear-acceso-directo [ruta]
+            if (args.Length > 0 && args[0] == "--crear-acceso-directo")
+            {
+                string destino = args.Length > 1 && args[1].Length > 0
+                    ? args[1]
+                    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Lobster.lnk");
+                try
+                {
+                    CrearAccesoDirecto(destino);
+                    File.WriteAllText(Path.Combine(BaseDir, "acceso-directo.txt"), "OK " + destino, new UTF8Encoding(false));
+                    Environment.Exit(0);
+                }
+                catch (Exception ex)
+                {
+                    File.WriteAllText(Path.Combine(BaseDir, "acceso-directo.txt"), "ERROR " + ex.Message, new UTF8Encoding(false));
+                    Environment.Exit(1);
+                }
+                return;
+            }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
@@ -45,6 +66,21 @@ namespace Lobster
 
             Directory.CreateDirectory(LogDir);
             Application.Run(new Ventana());
+        }
+
+        /// <summary>Crea un acceso directo .lnk que apunta a este mismo ejecutable.</summary>
+        public static void CrearAccesoDirecto(string ruta)
+        {
+            Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+            if (shellType == null) throw new Exception("WScript.Shell no disponible en este Windows");
+            object shell = Activator.CreateInstance(shellType);
+            object lnk = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { ruta });
+            Type t = lnk.GetType();
+            t.InvokeMember("TargetPath", BindingFlags.SetProperty, null, lnk, new object[] { Application.ExecutablePath });
+            t.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, lnk, new object[] { BaseDir });
+            t.InvokeMember("IconLocation", BindingFlags.SetProperty, null, lnk, new object[] { Application.ExecutablePath + ",0" });
+            t.InvokeMember("Description", BindingFlags.SetProperty, null, lnk, new object[] { "Lobster - asistente de IA local" });
+            t.InvokeMember("Save", BindingFlags.InvokeMethod, null, lnk, null);
         }
 
         static string LeerConfig(string clave)
@@ -235,7 +271,7 @@ namespace Lobster
         public Ventana()
         {
             Text = "Lobster";
-            ClientSize = new Size(460, 200);
+            ClientSize = new Size(560, 200);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
@@ -262,16 +298,39 @@ namespace Lobster
             {
                 Text = "Abrir panel",
                 Location = new Point(22, 120),
-                Size = new Size(190, 40),
+                Size = new Size(150, 40),
                 Enabled = false
             };
             abrir.Click += (s, e) => { try { Process.Start("http://localhost:3000/"); } catch { } };
 
+            var atajo = new Button
+            {
+                Text = "Acceso directo",
+                Location = new Point(182, 120),
+                Size = new Size(160, 40)
+            };
+            atajo.Click += (s, e) =>
+            {
+                try
+                {
+                    string ruta = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Lobster.lnk");
+                    Program.CrearAccesoDirecto(ruta);
+                    MessageBox.Show("Listo: se creo \"Lobster\" en el escritorio.", "Lobster",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("No se pudo crear el acceso directo:\r\n" + ex.Message, "Lobster",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            };
+
             detener = new Button
             {
                 Text = "Detener y salir",
-                Location = new Point(222, 120),
-                Size = new Size(196, 40)
+                Location = new Point(352, 120),
+                Size = new Size(186, 40)
             };
             detener.Click += (s, e) =>
             {
@@ -280,7 +339,7 @@ namespace Lobster
                 Close();
             };
 
-            Controls.AddRange(new Control[] { logo, estado, abrir, detener });
+            Controls.AddRange(new Control[] { logo, estado, abrir, atajo, detener });
 
             Shown += (s, e) =>
             {
